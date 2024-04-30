@@ -152,6 +152,8 @@ class Interp {
 	}
 
 	public function expr(e: Expr):Dynamic {
+		if (e == null)
+			return null;
 		switch (e.expr) {
 			case EConst(c):
 				return switch (c) {
