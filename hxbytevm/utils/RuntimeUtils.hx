@@ -24,20 +24,14 @@ class RuntimeUtils {
 
 		//if (v.iterator != null)
 		//	v = v.iterator();
-
-		if (v.hasNext == null || v.next == null)
-			throw "Invalid Iterator";
 		#else
 		try {
 			if (v.hasNext == null || v.next == null)
 				v = v.keyValueIterator();
 		} catch (e:Dynamic) {}
-
+		#end
 		if (v.hasNext == null || v.next == null)
 			throw "Invalid Iterator";
-		//if (v.hasNext == null || v.next == null)
-		//	v = iterator(v);
-		#end
 		return v;
 	}
 }
