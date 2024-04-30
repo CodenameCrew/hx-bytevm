@@ -1,5 +1,7 @@
 package hxbytevm.interp;
 
+import hxbytevm.utils.UnsafeReflect;
+import haxe.ds.Option;
 import hxbytevm.utils.RuntimeUtils;
 import hxbytevm.core.Ast;
 
@@ -17,7 +19,21 @@ class DeclaredVar {
  * This intepreter is used for short scripts, that dont need to be compiled, aka if its only run once or two
 **/
 class Interp {
-	public function new() {}
+	public function new() {
+		addTopLevelVar("trace", Reflect.makeVarArgs(function(args:Array<Dynamic>) {
+			var inf:haxe.PosInfos = {
+				fileName: "",
+				lineNumber: 0,
+				methodName: "", // TODO: get function name of function which called it,
+				className: "", // Use class name, if not available, use filename
+				customParams: []
+			}
+			var v = args.shift();
+			if (args.length > 0)
+				inf.customParams = args;
+			haxe.Log.trace(Std.string(v), inf);
+		}));
+	}
 
 	public function run(e: Expr):Dynamic {
 		try {
@@ -77,7 +93,19 @@ class Interp {
 		getDeclLevel(depth).push(decl);
 	}
 
-	public function getLocal(name: String): DeclaredVar {
+	public function getTopLevelVar(name: String): Option<DeclaredVar> {
+		var len = decls.length;
+		if(len == 0) return None;
+		for (decl in decls[0]) {
+			if (decl.name == name) {
+				return Some(decl);
+			}
+		}
+
+		return None;
+	}
+
+	public function getLocal(name: String): Option<DeclaredVar> {
 		var len = decls.length;
 		for (i in 0...len) {
 			var idx = len - i - 1; // make it go from the end to the beginning
@@ -86,21 +114,17 @@ class Interp {
 			for(j in 0...scopeLength) {
 				var v = scope[scopeLength - j - 1];
 				if (v.name == name) {
-					return v;
+					return Some(v);
 				}
 			}
 		}
 
-		return null;
+		return None;
 	}
 
-	public function getVar(name: String): DeclaredVar {
+	public function getVar(name: String): Option<DeclaredVar> {
 		var val = getLocal(name);
-		if (val != null) {
-			return val;
-		}
-
-		return null;
+		return val;
 	}
 
 	public function getIdentFromExpr(e: Expr): String {
@@ -115,16 +139,16 @@ class Interp {
 		return null;
 	}
 
-	public function getVarFromExpr(e: Expr): DeclaredVar {
+	public function getVarFromExpr(e: Expr): Option<DeclaredVar> {
 		switch (e.expr) {
 			case EConst(c):
 				return switch (c) {
 					case CIdent(s): getVar(s);
-					default: null;
+					default: None;
 				}
 			default:
 		}
-		return null;
+		return None;
 	}
 
 	public function expr(e: Expr):Dynamic {
@@ -134,7 +158,10 @@ class Interp {
 					case CInt(i): i;
 					case CFloat(f): f;
 					case CString(s, _): s;
-					case CIdent(s): getVar(s).value;
+					case CIdent(s): switch (getVar(s)) {
+						case Some(v): v.value;
+						case None: null;
+					}
 					//case CRegexp(s, _): s;
 					default: throw "Unknown constant";
 				}
@@ -146,11 +173,10 @@ class Interp {
 				switch (op) {
 					case BOpAssign:
 						var v = getVarFromExpr(e1);
-						if (v == null) {
-							throw "Unknown variable";
+						return switch (v) {
+							case Some(v): v.value = expr(e2);
+							case None: throw "Unknown variable";
 						}
-
-						return v.value = expr(e2);
 					default:
 				}
 				throw "Unknown binop";
@@ -159,14 +185,14 @@ class Interp {
 				return Reflect.field(e, name);
 			case EField(e, name, EFSafe):
 				var e = expr(e);
-				return e != null ? Reflect.field(e, name) : null;
+				return e != null ? UnsafeReflect.field(e, name) : null;
 			case EParenthesis(e):
 				return expr(e);
 			case EObjectDecl(fields):
 				var obj = {};
 				depth++;
 				for (f in fields) {
-					Reflect.setField(obj, f.name, expr(f.expr));
+					UnsafeReflect.setField(obj, f.name, expr(f.expr));
 				}
 				depth--;
 				return obj;
@@ -180,15 +206,27 @@ class Interp {
 				return arr;
 			case ECall(e, args):
 				var e = expr(e);
+				if(e == null) throw "Cannot call null";
 				var args = [for (a in args) expr(a)];
-				return Reflect.callMethod(null, e, args);
+				if(!UnsafeReflect.isFunction(e))
+					throw "Cannot call non function";
+				return UnsafeReflect.callMethodSafe(null, e, args);
 			case ENew(path, args):
 				var pack = "";
 				for(p in path.path.tpackage) {
 					pack += p + ".";
 				}
 				pack += path.path.tname;
-				var cls = Type.resolveClass(pack);
+				var cls = switch(getVar(pack)) {
+					case Some(v): v.value;
+					case None: Type.resolveClass(pack);
+				}
+				if (cls == null) {
+					throw "Unknown class";
+				}
+				if(!UnsafeReflect.isClass(cls)) {
+					throw "Cannot create instance of non class";
+				}
 				var args = [for (a in args) expr(a)];
 				return Type.createInstance(cls, args);
 			case EUnop(op, op_flag, e):
@@ -209,17 +247,55 @@ class Interp {
 					pushVar(v.ev_name.string, expr(v.ev_expr), null);
 				}
 				return null;
-			case EFunction(fk, f):
+			case EFunction(fk, fun):
 				// var args = [for (a in f.f_params) a.tp_name.string];
+				var totalArgs = 0;
+				var minArgs = 0;
+				for (a in fun.f_args) {
+					totalArgs += 1;
+					if (a.opt) { // Default args are treated as optional in the parser
+						minArgs++;
+					}
+				}
+				var funcName = switch (fk) {
+					case FKAnonymous: "anonymous function";
+					case FKNamed(name, _): "function named " + name.string;
+					case FKArrow: "arrow function";
+				}
+				funcName += " (" + totalArgs + ")";
+				funcName += " at " + e.pos;
 				var f = function(args: Array<Dynamic>) {
-					for (i=>v in f.f_args) {
+					depth++;
+					if(args.length < minArgs) {
+						throw "Not enough arguments for " + funcName + " got " + args.length + " expected " + minArgs;
+					}
+					for (i=>v in fun.f_args) {
 						var type = null;
 						if (v.type_hint != null) {
 							type = v.type_hint;
 						}
-						pushVar(v.name.string, args[i], null);
+						var argValue = null;
+						if(i > args.length) {
+							if(v.expr != null) {
+								argValue = expr(v.expr);
+							}
+						} else {
+							argValue = args[i];
+						}
+						pushVar(v.name.string, argValue, null);
 					}
-					return expr(f.f_expr);
+
+					var ret = try {
+						expr(fun.f_expr);
+					} catch (err:Stop) {
+						switch (err) {
+							case SReturn(v): v;
+							case SBreak: throw "Invalid break";
+							case SContinue: throw "Invalid continue";
+						}
+					}
+					depth--;
+					return ret;
 				}
 				return Reflect.makeVarArgs(f);
 			case EBlock(exprs):
@@ -241,6 +317,8 @@ class Interp {
 					default:
 						valuevar = {name: getIdentFromExpr(ident), value: null}
 				}
+
+				if(valuevar.name == null || keyvar.name == null) throw "Expected identifier";
 
 				var hasKey:Bool = keyvar != null;
 
@@ -349,24 +427,19 @@ class Interp {
 			case EContinue:
 				throw Stop.SContinue;
 			case EUntyped(e):
-				return expr(e);
+				return expr(e); // TODO: untyped maybe?
 			case EThrow(e):
 				throw expr(e);
 			case ECast(e, type_hint):
-				return expr(e);
+				return expr(e); // TODO: cast
 			case EIs(e, type_hint):
-				return expr(e);
+				return expr(e); // TODO: is
 			case ETernary(cond, true_expr, false_expr):
-				var ret = expr(cond);
-				if (ret) {
-					return expr(true_expr);
-				} else {
-					return expr(false_expr);
-				}
+				return expr(cond) ? expr(true_expr) : expr(false_expr);
 			case ECheckType(e, type_hint):
-				return expr(e);
+				return expr(e); // TODO: check type
 			case EMeta(entry, e):
-				return expr(e);
+				return expr(e); // TODO: meta, handle @:bypassAccessor
 		}
 		return null;
 	}

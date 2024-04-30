@@ -1,0 +1,13 @@
+{
+	"editor.detectIndentation": false,
+	"editor.insertSpaces": false,
+	"files.associations": {
+		"*.hx": "haxe",
+		"*.hscript": "haxe", // backwards compatibility
+		"*.hsc": "haxe",
+		"*.hxs": "haxe"
+	},
+	"files.eol": "\n",
+	"files.insertFinalNewline": true,
+	"files.trimTrailingWhitespace": true
+}

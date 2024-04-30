@@ -34,7 +34,7 @@ class Lexer {
 	public function new() {}
 
 	public var input:String;
-	public function tokenize(input:String):Array<Token> {
+	public function parse(input:String):Array<Token> {
 		if (input == null || input.length <= 0) return [];
 		this.input = input;
 
@@ -96,16 +96,16 @@ class Lexer {
 			return TEof;
 
 		switch (char) {
-            case "+".code:
+			case "+".code:
 				switch (input.charCodeAt(pos - 1)) {
 					case "+".code: TUnop(UIncrement);
 					default: token();
 				}
-            case "-".code:
-                switch (input.charCodeAt(pos - 1)) {
-                    case "-".code: TUnop(UDecrement);
-                    default: token();
-                }
+			case "-".code:
+				switch (input.charCodeAt(pos - 1)) {
+					case "-".code: TUnop(UDecrement);
+					default: token();
+				}
 			case 0: return TEof;
 			case '"'.code | "'".code: return TConst(CString(tokenString(char), char == '"'.code ? SDoubleQuotes : SSingleQuotes));
 			case '('.code: return TPOpen;
@@ -149,7 +149,7 @@ class Lexer {
 	}
 }
 
-    /*
+	/*
 | "--" -> mk lexbuf (Unop Decrement)
 | "~"  -> mk lexbuf (Unop NegBits)
 | "%=" -> mk lexbuf (Binop (OpAssignOp OpMod))
