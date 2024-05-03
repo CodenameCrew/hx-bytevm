@@ -1,5 +1,6 @@
 package hxbytevm.interp;
 
+import haxe.Constraints.IMap;
 import hxbytevm.utils.UnsafeReflect;
 import haxe.ds.Option;
 import hxbytevm.utils.RuntimeUtils;
@@ -168,9 +169,13 @@ class Interp {
 					default: throw "Unknown constant";
 				}
 			case EArray(arr, index):
-				var arr = expr(arr);
-				var index = expr(index);
-				return arr[index];
+				var arr:Dynamic = expr(arr);
+				var index:Dynamic = expr(index);
+				if(arr is IMap) {
+					return cast(arr, IMap<Dynamic, Dynamic>).get(index);
+				} else {
+					return arr[index];
+				}
 			case EBinop(op, e1, e2):
 				switch (op) {
 					case BOpAssign:
@@ -192,27 +197,35 @@ class Interp {
 				return expr(e);
 			case EObjectDecl(fields):
 				var obj = {};
-				depth++;
+				//depth++;
 				for (f in fields) {
 					UnsafeReflect.setField(obj, f.name, expr(f.expr));
 				}
-				depth--;
+				//depth--;
 				return obj;
 			case EArrayDecl(exprs):
 				var arr = [];
-				depth++;
+				//depth++; // cant declare in a array
 				for (e in exprs) {
 					arr.push(expr(e));
 				}
-				depth--;
+				//depth--;
 				return arr;
 			case ECall(e, args):
+				var isSafe = switch (e.expr) {
+					case EField(_, _, EFSafe): true;
+					default: false;
+				}
 				var e = expr(e);
-				if(e == null) throw "Cannot call null";
+				if(e == null) // clean this up
+					if(isSafe)
+						return null;
+					else
+						throw "Cannot call null";
 				var args = [for (a in args) expr(a)];
 				if(!UnsafeReflect.isFunction(e))
 					throw "Cannot call non function";
-				return UnsafeReflect.callMethodSafe(null, e, args);
+				return UnsafeReflect.callMethodUnsafe(null, e, args);
 			case ENew(path, args):
 				var pack = "";
 				for(p in path.path.tpackage) {
@@ -223,12 +236,10 @@ class Interp {
 					case Some(v): v.value;
 					case None: Type.resolveClass(pack);
 				}
-				if (cls == null) {
+				if (cls == null)
 					throw "Unknown class";
-				}
-				if(!UnsafeReflect.isClass(cls)) {
+				if(!UnsafeReflect.isClass(cls))
 					throw "Cannot create instance of non class";
-				}
 				var args = [for (a in args) expr(a)];
 				return Type.createInstance(cls, args);
 			case EUnop(op, op_flag, e):
@@ -303,9 +314,13 @@ class Interp {
 			case EBlock(exprs):
 				var ret = null;
 				depth++;
-				for (i => e in exprs)
-					if (i < exprs.length)
+				for (i => e in exprs) {
+					if (i == exprs.length - 1) { // maybe this is not needed
 						ret = expr(e);
+					} else {
+						expr(e);
+					}
+				}
 				depth--;
 				return ret;
 			case EFor(ident, iterator):
@@ -320,9 +335,9 @@ class Interp {
 						valuevar = {name: getIdentFromExpr(ident), value: null}
 				}
 
-				if(valuevar.name == null || keyvar.name == null) throw "Expected identifier";
-
 				var hasKey:Bool = keyvar != null;
+
+				if(valuevar.name == null || (hasKey && keyvar.name == null)) throw "Expected identifier";
 
 				var it = (hasKey ? RuntimeUtils.keyValueIterator : RuntimeUtils.iterator)(expr(iterator));
 				var _hasNext = it.hasNext; var _next = it.next;
@@ -416,6 +431,7 @@ class Interp {
 				}
 				catch (e: Dynamic) {
 					for (c in catches) {
+						// TODO: handle catches
 						//if (Std.isOfType(e, c.type.type)) {
 						//	return expr(c.expr);
 						//}
