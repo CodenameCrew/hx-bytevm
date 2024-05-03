@@ -5,6 +5,7 @@ import hxbytevm.utils.UnsafeReflect;
 import haxe.ds.Option;
 import hxbytevm.utils.RuntimeUtils;
 import hxbytevm.core.Ast;
+import haxe.ds.Vector;
 
 @:structInit
 class DeclaredVar {
@@ -288,12 +289,12 @@ class Interp {
 				var obj = {};
 				//depth++;
 				for (f in fields) {
-					UnsafeReflect.setField(obj, f.name, expr(f.expr));
+					UnsafeReflect.setField(obj, f.field, expr(f.expr));
 				}
 				//depth--;
 				return obj;
 			case EArrayDecl(exprs):
-				var arr = [];
+				var arr = new Vector<Dynamic>(exprs.length);
 				//depth++; // cant declare in a array
 				for(i in 0...exprs.length) {
 					arr[i] = expr(exprs[i]);
@@ -317,10 +318,10 @@ class Interp {
 				return UnsafeReflect.callMethodUnsafe(null, e, args);
 			case ENew(path, args):
 				var pack = "";
-				for(p in path.path.tpackage) {
+				for(p in path.path.pack) {
 					pack += p + ".";
 				}
-				pack += path.path.tname;
+				pack += path.path.name;
 				var cls = switch(getVar(pack)) {
 					case Some(v): v.value;
 					case None: Type.resolveClass(pack);
@@ -346,22 +347,22 @@ class Interp {
 				}
 			case EVars(vars):
 				for(v in vars) {
-					pushVar(v.ev_name.string, expr(v.ev_expr), null);
+					pushVar(v.name.string, expr(v.expr), null);
 				}
 				return null;
 			case EFunction(fk, fun):
 				// var args = [for (a in f.f_params) a.tp_name.string];
 				var totalArgs = 0;
 				var minArgs = 0;
-				for (a in fun.f_args) {
+				for (a in fun.args) {
 					totalArgs += 1;
 					if (a.opt) // Default args are treated as optional in the parser
 						minArgs++;
 				}
 				var funcName = switch (fk) {
-					case FKAnonymous: "anonymous function";
-					case FKNamed(name, _): "function named " + name.string;
-					case FKArrow: "arrow function";
+					case FAnonymous: "anonymous function";
+					case FNamed(name, _): "function named " + name.string;
+					case FArrow: "arrow function";
 				}
 				funcName += " (" + totalArgs + ")" + " at " + e.pos;
 
@@ -374,15 +375,15 @@ class Interp {
 					if(args.length < closureMinArgs) {
 						throw "Not enough arguments for " + closureFunc + " got " + args.length + " expected " + closureMinArgs;
 					}
-					for (i=>v in fun.f_args) {
+					for (i=>v in fun.args) {
 						//var type = null;
 						//if (v.type_hint != null) {
 						//	type = v.type_hint;
 						//}
 						var argValue = null;
 						if(i > args.length) {
-							if(v.expr != null) {
-								argValue = expr(v.expr);
+							if(v.value != null) {
+								argValue = expr(v.value);
 							}
 						} else {
 							argValue = args[i];
@@ -391,7 +392,7 @@ class Interp {
 					}
 
 					var ret = try {
-						expr(fun.f_expr);
+						expr(fun.expr);
 					} catch (err:Stop) {
 						switch (err) {
 							case SReturn(v): v;
@@ -433,28 +434,37 @@ class Interp {
 				//for (e in exprs) {
 				//	ret = expr(e);
 				//}
+				var exprs:Vector<Expr> = cast exprs;
 				for (i in 0...exprs.length) {
 					ret = expr(exprs[i]);
 				}
 				depth--;
 				return ret;
-			case EFor(ident, iterator):
+			case EFor(iterator, e):
 				var keyvar:DeclaredVar = null;
 				var valuevar:DeclaredVar = null;
+				var it:Dynamic = null;
+				var hasKey:Bool = false;
 
-				switch (ident.expr) {
-					case EBinop(BOpArrow, _.expr => EConst(CIdent(key)), _.expr => EConst(CIdent(value))):
-						keyvar = {name: key, value: null};
-						valuevar = {name: value, value: null};
+				switch (iterator.expr) {
+					case EBinop(BOpIn, e1, e2):
+						switch (e1.expr) {
+							case EBinop(BOpArrow, _.expr => EConst(CIdent(key)), _.expr => EConst(CIdent(value))):
+								keyvar = {name: key, value: null};
+								valuevar = {name: value, value: null};
+								hasKey = true;
+							default:
+						}
+						if(valuevar == null) {
+							valuevar = {name: getIdentFromExpr(e1), value: null}
+						}
+
+						if(valuevar.name == null || (hasKey && keyvar.name == null)) throw "Expected identifier";
+						it = (hasKey ? RuntimeUtils.keyValueIterator : RuntimeUtils.iterator)(expr(e2));
 					default:
-						valuevar = {name: getIdentFromExpr(ident), value: null}
+						throw "Invalid for loop iterator";
 				}
 
-				var hasKey:Bool = keyvar != null;
-
-				if(valuevar.name == null || (hasKey && keyvar.name == null)) throw "Expected identifier";
-
-				var it = (hasKey ? RuntimeUtils.keyValueIterator : RuntimeUtils.iterator)(expr(iterator));
 				var _hasNext = it.hasNext; var _next = it.next;
 
 				if (hasKey) pushDecl(keyvar);

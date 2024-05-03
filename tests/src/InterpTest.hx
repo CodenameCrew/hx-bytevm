@@ -1,6 +1,7 @@
 package;
 
 import hxbytevm.interp.Interp;
+import hxbytevm.printer.Printer;
 import hxbytevm.core.Ast;
 
 class InterpTest {
@@ -23,7 +24,7 @@ class InterpTest {
 		run(mk(EBlock([
 			mk(EVars([
 				{
-					ev_name : {
+					name : {
 						string : "i",
 						pos: {
 							min : 0,
@@ -31,11 +32,11 @@ class InterpTest {
 							file : "InterpTest.hx",
 						}
 					},
-					ev_final : false,
-					ev_static : false,
-					ev_public : false,
-					ev_expr : mk(EConst(CInt(0))),
-					ev_meta : null
+					isFinal : false,
+					isStatic : false,
+					isPublic : false,
+					expr : mk(EConst(CInt(0))),
+					meta : null
 				}
 			])),
 			mk(EWhile(
@@ -62,5 +63,6 @@ class InterpTest {
 	public static function run( e : Expr ) {
 		var interp = new Interp();
 		interp.run(e);
+		trace(Printer.printExpr(e));
 	}
 }

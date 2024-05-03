@@ -92,9 +92,9 @@ enum StringLiteralKind {
 	SSingleQuotes;
 }
 
-enum Const {
-	CInt(value:Int);
-	CFloat(value:Float);
+enum Constant {
+	CInt(value:Int, ?suffix:String);
+	CFloat(value:Float, ?suffix:String);
 	CString(value:String, qoutes:StringLiteralKind);
 	CIdent(value:String);
 	CRegexp(value:String, options:String);
@@ -111,15 +111,15 @@ enum WhileFlag {
 }
 
 enum QuoteStatus {
-	WNoQuotes;
-	QDoubleQuotes;
+	QUnquoted;
+	QQuoted;
 }
 
 typedef TypePath = {
-	var tpackage : Array <String> ;
-	var tname : String ;
-	var tparams : Array <TypeParamOrConst> ;
-	var tsub : String ;
+	var pack : Array <String> ;
+	var name : String ;
+	var params : Array <TypeParam> ;
+	var sub : String ;
 }
 
 typedef Pos = {
@@ -134,40 +134,35 @@ typedef PlacedTypePath = {
 	var pos_path : Pos ;
 }
 
-enum TypeParamOrConst {
-	TPType( typehint : TypeHint );
+enum TypeParam {
+	TPType( type : ComplexType );
 	TPExpr( expr : Expr );
 }
 
 enum ComplexType {
 	CTPath( placed_type_path : PlacedTypePath );
-	CTFunction( type_hint_list : Array<TypeHint> , type_hint : TypeHint );
+	CTFunction( type_hint_list : Array<ComplexType> , type_hint : ComplexType );
 	CTAnonymous( class_field : Array<ClassField> );
-	CTParent( type_hint : TypeHint );
+	CTParent( type_hint : ComplexType );
 	CTExtend( placed_type_path : Array<PlacedTypePath> , class_field : Array<ClassField> );
-	CTOptional( type_hint : TypeHint );
-	CTNamed( placed_name : PlacedName , type_hint : TypeHint );
-	CTIntersection( type_hint_list : Array<TypeHint> );
-}
-
-typedef TypeHint = {
-	var complex_type : ComplexType ;
-	var pos : Pos ;
+	CTOptional( type_hint : ComplexType );
+	CTNamed( placed_name : PlacedName , type_hint : ComplexType );
+	CTIntersection( type_hint_list : Array<ComplexType> );
 }
 
 typedef FuncArg = {
 	var name : PlacedName;
 	var opt : Bool;
 	var meta: Metadata ;
-	var ?type_hint : TypeHint ;
-	var ?expr : Expr;
+	var ?type : ComplexType ;
+	var ?value : Expr;
 }
 
 typedef Func = {
-	var f_params : Array<TypeParam>;
-	var f_args : Array<FuncArg> ;
-	var ?f_type : TypeHint;
-	var ?f_expr : Expr;
+	var params : Array<TypeParam>;
+	var args : Array<FuncArg> ;
+	var ?ret : ComplexType;
+	var ?expr : Expr;
 }
 
 typedef PlacedName = {
@@ -176,9 +171,9 @@ typedef PlacedName = {
 }
 
 enum FunctionKind {
-	FKAnonymous;
-	FKNamed( placed_name : PlacedName , in_line : Bool );
-	FKArrow;
+	FAnonymous;
+	FNamed( placed_name : PlacedName , in_line : Bool );
+	FArrow;
 }
 
 enum DisplayKind {
@@ -197,35 +192,32 @@ enum EFieldKind {
 @:structInit
 class Catch {
 	public var v: String;
-	public var type: TypeHint;
+	public var type: Null<ComplexType>;
 	public var expr: Expr;
-	public var pos: Pos;
 }
 
 @:structInit
 class SimpleCase {
 	public var expr: Expr;
 	public var values: Array<Expr>;
-	public var pos: Pos;
 }
 
 @:structInit
 class Case {
 	public var expr: Expr;
 	public var guard: Expr;
-	public var pos: Pos;
+	public var values: Array<Expr>;
 }
 
 @:structInit
 class ObjectField {
-	public var name: String;
+	public var field: String;
 	public var expr: Expr;
-	public var pos: Pos;
-	public var quote: QuoteStatus;
+	public var quotes: Null<QuoteStatus>;
 }
 
 enum ExprDef {
-	EConst( const : Const );
+	EConst( const : Constant );
 	EArray ( arr : Expr, index : Expr ); // expr[expr]
 	EBinop( binop : Binop, expr1 : Expr, expr2 : Expr );
 	EField( expr : Expr, name : String, kind : EFieldKind );
@@ -238,7 +230,7 @@ enum ExprDef {
 	EVars( vars : Array<Evar> );
 	EFunction( func_kind : FunctionKind, func : Func );
 	EBlock( exprs : Array<Expr> );
-	EFor( ident : Expr, iterator : Expr );
+	EFor( iterator : Expr, expr : Expr );
 	EIf( cond : Expr, expr : Expr, ?else_expr : Expr );
 	EWhile( cond : Expr, expr : Expr, flag : WhileFlag );
 	ESwitch( expr : Expr, cases : Array<SimpleCase>, default_case : SimpleCase );
@@ -249,11 +241,11 @@ enum ExprDef {
 	EContinue;
 	EUntyped( expr : Expr );
 	EThrow( expr : Expr );
-	ECast( expr : Expr, type_hint : TypeHint );
-	EIs( expr : Expr, type_hint : TypeHint );
+	ECast( expr : Expr, type : ComplexType );
+	EIs( expr : Expr, type : ComplexType );
 	// EDisplay( expr : Expr, kind : DisplayKind ); // not used since we dont have language server
 	ETernary( cond : Expr, true_expr : Expr, false_expr : Expr );
-	ECheckType( expr : Expr, type_hint : TypeHint );
+	ECheckType( expr : Expr, type : ComplexType );
 	EMeta( entry: MetadataEntry, expr: Expr );
 }
 
@@ -263,23 +255,21 @@ class Expr {
 	public var pos: Pos;
 }
 
-typedef TypeParam = {
-	var tp_name : PlacedName ;
-	var tp_params : Array<TypeParam> ;
-	var ?tp_constraints : TypeHint ;
-	var ?tp_default : TypeHint ;
-	var tp_meta : Metadata ;
+typedef TypeParamDecl = {
+	var name : PlacedName ;
+	var ?params : Array<TypeParam> ;
+	var ?constraints : ComplexType ;
+	var ?defaultType : ComplexType ;
+	var meta : Metadata ;
 }
 
 typedef MetadataEntry = {
-	// TODO: Meta.strict_meta ??
-	var expr : Array<Expr> ;
-	var pos : Pos ;
+	var name:String;
+	var ?params:Array<Expr>;
+	var pos:Pos;
 }
 
-typedef Metadata = {
-	var entries : Array<MetadataEntry> ;
-}
+typedef Metadata = Array<MetadataEntry>;
 
 enum Access {
 	APublic;
@@ -296,15 +286,10 @@ enum Access {
 	AEnum;
 }
 
-typedef PlannedAccess = {
-	var access : Access ;
-	var pos : Pos ;
-}
-
 enum ClassFieldKind {
-	CFKVar( option : TypeHint , ?expr : Expr );
+	CFKVar( option : ComplexType , ?expr : Expr );
 	CFKFun( func : Func );
-	CFKProp( placed_name1 : PlacedName , placed_name2 : PlacedName, type_hint : TypeHint , ?expr : Expr );
+	CFKProp( placed_name1 : PlacedName , placed_name2 : PlacedName, type : ComplexType , ?expr : Expr );
 }
 
 typedef Documenation = {
@@ -317,18 +302,18 @@ typedef ClassField = {
 	var cff_doc : Documenation ;
 	var cff_pos : Pos ;
 	var cff_meta : Metadata ;
-	var cff_access : Array<PlannedAccess> ;
+	var cff_access : Array<Access> ;
 	var cff_kind : ClassFieldKind ;
 }
 
 typedef Evar = {
-	var ev_name : PlacedName ;
-	var ev_final : Bool ;
-	var ev_static : Bool ;
-	var ev_public : Bool ;
-	var ?ev_type : TypeHint ;
-	var ?ev_expr : Expr ;
-	var ev_meta : Metadata ;
+	var name : PlacedName ;
+	var isFinal : Bool ;
+	var isStatic : Bool ;
+	var isPublic : Bool ;
+	var ?type : ComplexType ;
+	var ?expr : Expr ;
+	var meta : Metadata ;
 }
 
 enum EnumFlag {
@@ -348,9 +333,9 @@ enum ClassFlag {
 
 enum AbstractFlag {
 	AbPrivate;
-	AbFrom( type_hint : TypeHint );
-	AbTo( type_hint : TypeHint );
-	AbOver( type_hint : TypeHint ); // no clue what this is
+	AbFrom( type : ComplexType );
+	AbTo( type : ComplexType );
+	AbOver( type : ComplexType ); // no clue what this is
 	AbExtern;
 	AbEnum;
 }
@@ -363,7 +348,7 @@ enum TypedefFlag {
 typedef EnumArg = {
 	var name : String;
 	var opt : Bool;
-	var type_hint : TypeHint ;
+	var type : ComplexType ;
 }
 
 typedef EnumConstructor = {
@@ -373,7 +358,7 @@ typedef EnumConstructor = {
 	var ec_args : Array<EnumArg> ;
 	var ec_pos : Pos;
 	var ec_params : Array<TypeParam> ;
-	var ec_type : TypeHint ;
+	var ec_type : ComplexType ;
 }
 
 typedef Definition<F, D> = {
@@ -391,17 +376,17 @@ enum ImportMode {
 	IAll;
 }
 
-typedef Import = {
-	var package_name : Array<PlacedName> ;
-	var import_mode : ImportMode ;
+typedef ImportExpr = {
+	var path : Array<PlacedName> ;
+	var mode : ImportMode ;
 }
 
 enum Typedef {
 	EClass( def : Definition<ClassFlag, Array<ClassField>> );
-	EEnum( def : Definition<EnumFlag , Array<EnumConstructor>> );
-	ETypedef( def : Definition<TypedefFlag , TypeHint> );
+	EEnum( def : Definition<EnumFlag, Array<EnumConstructor>> );
+	ETypedef( def : Definition<TypedefFlag, ComplexType> );
 	EAbstract( def : Definition<AbstractFlag, Array<ClassField>> );
-	EStatic( def : Definition<PlannedAccess, ClassFieldKind> );
-	EImport( _import : Import );
+	EStatic( def : Definition<Access, ClassFieldKind> );
+	EImport( _import : ImportExpr );
 	EUsing( pack : Array<PlacedName> );
 }
