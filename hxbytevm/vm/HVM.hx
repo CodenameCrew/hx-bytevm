@@ -60,6 +60,8 @@ class HVM {
 		while (ip <= intructions.length-1) {
 			instruction(intructions[ip]);
 			ip++;
+
+			// trace(intructions[ip-1], ip-1, sp-1, stack.stack, _variables);
 		}
 
 		return ret;
@@ -73,7 +75,8 @@ class HVM {
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
 		switch (intructions[ip]) {
-			case PUSH: stack.push(get_rom());
+			case PUSH:
+				stack.push(get_rom());
 			case PUSHV: stack.push(_variables[get_rom()]);
 			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
@@ -81,10 +84,16 @@ class HVM {
 			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC: depth--;
-			case JUMP: sp = get_rom(); ip = get_rom();
+			case JUMP:
+				var s = get_rom();
+				var i = get_rom();
+				sp = s; ip = i;
 			case JUMP_COND:
-				if (stack.pop() == true)
-					sp = get_rom(); ip = get_rom();
+				if (stack.pop() == true) {
+					var s = get_rom();
+					var i = get_rom();
+					sp = s; ip = i;
+				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
 				var kind:FunctionKind = cast get_rom();
 				var func:Func = cast get_rom();
