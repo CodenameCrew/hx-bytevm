@@ -295,8 +295,8 @@ class Interp {
 			case EArrayDecl(exprs):
 				var arr = [];
 				//depth++; // cant declare in a array
-				for (e in exprs) {
-					arr.push(expr(e));
+				for(i in 0...exprs.length) {
+					arr[i] = expr(exprs[i]);
 				}
 				//depth--;
 				return arr;
@@ -355,27 +355,30 @@ class Interp {
 				var minArgs = 0;
 				for (a in fun.f_args) {
 					totalArgs += 1;
-					if (a.opt) { // Default args are treated as optional in the parser
+					if (a.opt) // Default args are treated as optional in the parser
 						minArgs++;
-					}
 				}
 				var funcName = switch (fk) {
 					case FKAnonymous: "anonymous function";
 					case FKNamed(name, _): "function named " + name.string;
 					case FKArrow: "arrow function";
 				}
-				funcName += " (" + totalArgs + ")";
-				funcName += " at " + e.pos;
+				funcName += " (" + totalArgs + ")" + " at " + e.pos;
+
+				// To make faster and more memory efficient generated code
+				var closureFunc = funcName;
+				var closureMinArgs = minArgs;
+				// todo: make this not use reflection
 				var f = function(args: Array<Dynamic>) {
 					depth++;
-					if(args.length < minArgs) {
-						throw "Not enough arguments for " + funcName + " got " + args.length + " expected " + minArgs;
+					if(args.length < closureMinArgs) {
+						throw "Not enough arguments for " + closureFunc + " got " + args.length + " expected " + closureMinArgs;
 					}
 					for (i=>v in fun.f_args) {
-						var type = null;
-						if (v.type_hint != null) {
-							type = v.type_hint;
-						}
+						//var type = null;
+						//if (v.type_hint != null) {
+						//	type = v.type_hint;
+						//}
 						var argValue = null;
 						if(i > args.length) {
 							if(v.expr != null) {
@@ -427,12 +430,11 @@ class Interp {
 			case EBlock(exprs):
 				var ret = null;
 				depth++;
-				for (i => e in exprs) {
-					if (i == exprs.length - 1) { // maybe this is not needed
-						ret = expr(e);
-					} else {
-						expr(e);
-					}
+				//for (e in exprs) {
+				//	ret = expr(e);
+				//}
+				for (i in 0...exprs.length) {
+					ret = expr(exprs[i]);
 				}
 				depth--;
 				return ret;
