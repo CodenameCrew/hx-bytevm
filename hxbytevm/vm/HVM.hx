@@ -200,11 +200,11 @@ class HVM {
 				var v1:Dynamic = stack.pop();
 				stack.push(v1%v2);
 			case INC:
-				var v:Dynamic = stack.pop(); v++;
-				stack.push(v);
+				var v:Dynamic = stack.pop();
+				stack.push(v+1);
 			case DNC:
-				var v:Dynamic = stack.pop(); v--;
-				stack.push(v);
+				var v:Dynamic = stack.pop();
+				stack.push(v-1);
 			case NOT: stack.push(!stack.pop());
 			case NEG: stack.push(-stack.pop());
 			case NGBITS: stack.push(~stack.pop());

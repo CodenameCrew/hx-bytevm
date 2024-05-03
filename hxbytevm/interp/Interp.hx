@@ -178,15 +178,104 @@ class Interp {
 				}
 			case EBinop(op, e1, e2):
 				switch (op) {
+					// temp code
+					case BOpEq:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 == v2;
+					case BOpNotEq:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 != v2;
+					case BOpGt:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 > v2;
+					case BOpGte:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 >= v2;
+					case BOpLt:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 < v2;
+					case BOpLte:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 <= v2;
+					case BOpAdd:
+						var v1:Dynamic = expr(e1);
+						var v2:Dynamic = expr(e2);
+						return v1 + v2;
+					case BOpSub:
+						var v1:Float = expr(e1);
+						var v2:Float = expr(e2);
+						return v1 - v2;
+					case BOpMult:
+						var v1:Float = expr(e1);
+						var v2:Float = expr(e2);
+						return v1 * v2;
+					case BOpDiv:
+						var v1:Float = expr(e1);
+						var v2:Float = expr(e2);
+						return v1 / v2;
+					case BOpMod:
+						var v1:Float = expr(e1);
+						var v2:Float = expr(e2);
+						return v1 % v2;
+					case BOpAnd:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 & v2;
+					case BOpOr:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 | v2;
+					case BOpXor:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 ^ v2;
+					case BOpShr:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 >> v2;
+					case BOpShl:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 << v2;
+					case BOpUShr:
+						var v1:Int = expr(e1);
+						var v2:Int = expr(e2);
+						return v1 >>> v2;
+					case BOpBoolAnd:
+						return expr(e1) && expr(e2);
+					case BOpBoolOr:
+						return expr(e1) || expr(e2);
+					case BOpNullCoal:
+						var v1 = expr(e1);
+						return v1 == null ? expr(e2) : v1;
 					case BOpAssign:
 						var v = getVarFromExpr(e1);
 						return switch (v) {
 							case Some(v): v.value = expr(e2);
-							case None: throw "Unknown variable";
+							case None: throw "Unknown variable " + e1;
 						}
-					default:
+					case BOpAssignOp(op):
+						//var v = getVarFromExpr(e1);
+						//return switch (v) {
+						//	case Some(v): v.value = expr(e2);
+						//	case None: throw "Unknown variable " + e1;
+						//}
+						throw "Binop assign op not implemented";
+					case BOpIn:
+						throw "Unknown binop " + op;
+					case BOpInterval:
+						throw "Unknown binop " + op;
+					case BOpArrow:
+						throw "Unknown binop " + op;
+					//default:
 				}
-				throw "Unknown binop";
+				throw "Unknown binop " + op;
 			case EField(e, name, EFNormal):
 				var e = expr(e);
 				return Reflect.field(e, name);
@@ -308,8 +397,32 @@ class Interp {
 						}
 					}
 					depth--;
+
+					#if cpp
+					untyped __cpp__(' return ret;
+					}
+
+					const char *mName;
+
+					::String __ToString() const{ return String(mName); }
+
+					::Dynamic __DO_NOT_RUN__() {
+						#ifdef HXCPP_STACK_TRACE
+						::hx::StackFrame _hx_stackframe(0);
+						#endif
+						::Dynamic ret = 0;
+					');
+					#end
 					return ret;
 				}
+				#if cpp
+				untyped {
+					__cpp__("
+					_hx_Closure_0* ft = dynamic_cast<_hx_Closure_0 *>({0}.mPtr);
+					ft->mName = {1}.__s;
+					", f, funcName);
+				}
+				#end
 				return Reflect.makeVarArgs(f);
 			case EBlock(exprs):
 				var ret = null;
