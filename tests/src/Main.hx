@@ -9,30 +9,30 @@ import hxbytevm.interp.Interp;
 class Main {
 	public static var PROGRAM_ADD:Program = {
 		intructions: [PUSHC, PUSHC, ADD, RET],
-		storages: [0, 1],
-		constants: [2, 5],
-		varnames: []
+		read_only_stack: [0, 1],
+		constant_stack: [2, 5],
+		varnames_stack: []
 	};
 
 	public static var PROGRAM_NEG:Program = {
 		intructions: [PUSHC, NEG, RET],
-		storages: [0],
-		constants: [2],
-		varnames: []
+		read_only_stack: [0],
+		constant_stack: [2],
+		varnames_stack: []
 	};
 
 	public static var PROGRAM_IF:Program = {
 		intructions: [PUSHC, PUSHC, EQ, RET],
-		storages: [0, 1],
-		constants: [2, 8],
-		varnames: []
+		read_only_stack: [0, 1],
+		constant_stack: [2, 8],
+		varnames_stack: []
 	};
 
 	public static var PROGRAM_CALL:Program = {
 		intructions: [PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL, PUSH, RET],
-		storages: [function_test, 0, 2, "FINISHED INTRUCTIONS"],
-		constants: [2],
-		varnames: []
+		read_only_stack: [function_test, 0, 2, "FINISHED INTRUCTIONS"],
+		constant_stack: [2],
+		varnames_stack: []
 	};
 
 	public static function main() {
