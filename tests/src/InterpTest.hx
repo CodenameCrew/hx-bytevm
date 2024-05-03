@@ -15,12 +15,17 @@ class InterpTest {
 	}
 
 	public static function main() {
+		Sys.println(Util.getTitle("INTERP TESTING"));
+
+		Sys.println(Util.getTitle("CALL TEST"));
 		run(mk(EBlock([
 			mk(ECall(mk(EConst(CIdent("trace"))), [
 				mk(EConst(CString("Hello World", SSingleQuotes)))
 			]))
 		])));
 
+
+		Sys.println(Util.getTitle("WHILE LOOP TEST"));
 		run(mk(EBlock([
 			mk(EVars([
 				{
@@ -63,6 +68,6 @@ class InterpTest {
 	public static function run( e : Expr ) {
 		var interp = new Interp();
 		interp.run(e);
-		trace(Printer.printExpr(e));
+		Sys.println(Util.getTitle("EXPR PRINTED:") + "\n" + Printer.printExpr(e));
 	}
 }

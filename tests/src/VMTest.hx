@@ -39,13 +39,18 @@ class VMTest {
 	};
 
 	public static function main() {
+		Sys.println(Util.getTitle("HVM TESTING"));
 		var hvm:HVM = new HVM();
 
-		// trace(hvm.run(PROGRAM_ADD));
-		// trace(hvm.run(PROGRAM_NEG));
-		// trace(hvm.run(PROGRAM_IF));
-
-		// hvm.run(PROGRAM_CALL);
+		Sys.println(Util.getTitle("PROGRAM ADD"));
+		trace(hvm.run(PROGRAM_ADD));
+		Sys.println(Util.getTitle("PROGRAM NEG"));
+		trace(hvm.run(PROGRAM_NEG));
+		Sys.println(Util.getTitle("PROGRAM IF"));
+		trace(hvm.run(PROGRAM_IF));
+		Sys.println(Util.getTitle("PROGRAM CALL"));
+		hvm.run(PROGRAM_CALL);
+		Sys.println(Util.getTitle("PROGRAM WHILE"));
 		hvm.run(PROGRAM_WHILE);
 	}
 
