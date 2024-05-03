@@ -32,9 +32,9 @@ class Main {
 	};
 
 	public static var PROGRAM_WHILE:Program = {
-		intructions: [PUSHC, SAVE, PUSH, PUSHV, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
-		read_only_stack: [0, 0, function_test2, 0, 1, 0, 0, 0, 1, 2, 1],
-		constant_stack: [0, 10],
+		intructions: [PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
+		read_only_stack: [0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
+		constant_stack: [0, 10, "DO WHILE LOOP (i):  "],
 		varnames_stack: ["i"]
 	};
 
@@ -51,9 +51,5 @@ class Main {
 
 	public static function function_test(arg1:Int, arg2:Bool) {
 		trace("CALL" , arg1, arg2);
-	}
-
-	public static function function_test2(arg1:String) {
-		trace("AWESOME" , arg1);
 	}
 }

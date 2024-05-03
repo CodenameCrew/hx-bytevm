@@ -20,7 +20,7 @@ class HVM {
 
 	// pointers
 	var ip:Int = 0;
-	var sp:Int = 0;
+	var rp:Int = 0;
 
 	// TODO: Handle scope, variablenames for each scope
 	@:noCompletion public var _varnames:Array<String> = [];
@@ -33,7 +33,7 @@ class HVM {
 	public function new() {}
 
 	public function reset() {
-		ip = 0; sp = 0;
+		ip = 0; rp = 0;
 		stack = new Stack();
 		depth = 0;
 
@@ -60,16 +60,15 @@ class HVM {
 		while (ip <= intructions.length-1) {
 			instruction(intructions[ip]);
 			ip++;
-
-			// trace(intructions[ip-1], ip-1, sp-1, stack.stack, _variables);
+			// trace(intructions[ip-1], ip-1, rp-1, stack.stack, _variables);
 		}
 
 		return ret;
 	}
 
 	public inline function get_rom():Dynamic {
-		var ret = rom[sp];
-		sp++; return ret;
+		var ret = rom[rp];
+		rp++; return ret;
 	}
 
 	var ret:Dynamic = null;
@@ -85,14 +84,14 @@ class HVM {
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC: depth--;
 			case JUMP:
-				var s = get_rom();
+				var r = get_rom();
 				var i = get_rom();
-				sp = s; ip = i;
+				rp = r; ip = i;
 			case JUMP_COND:
 				if (stack.pop() == true) {
-					var s = get_rom();
+					var r = get_rom();
 					var i = get_rom();
-					sp = s; ip = i;
+					rp = r; ip = i;
 				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
 				var kind:FunctionKind = cast get_rom();
@@ -125,86 +124,86 @@ class HVM {
 				array.reverse();
 				stack.push(array);
 			case ADD:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1+v2);
 			case MULT:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1*v2);
 			case DIV:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1/v2);
 			case SUB:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1-v2);
 			case EQ:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1==v2);
 			case NEQ:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1!=v2);
 			case GT:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1>v2);
 			case GTE:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1>=v2);
 			case LT:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1<v2);
 			case LTE:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1<=v2);
 			case AND:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1&v2);
 			case OR:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1|v2);
 			case XOR:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1^v2);
 			case BAND:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1&&v2);
 			case BOR:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1||v2);
 			case SHL:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1<<v2);
 			case SHR:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1>>v2);
 			case USHR:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1>>>v2);
 			case MOD:
-				var v2 = stack.pop();
-				var v1 = stack.pop();
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
 				stack.push(v1%v2);
 			case INC:
-				var v = stack.pop(); v++;
+				var v:Dynamic = stack.pop(); v++;
 				stack.push(v);
 			case DNC:
-				var v = stack.pop(); v--;
+				var v:Dynamic = stack.pop(); v--;
 				stack.push(v);
 			case NOT: stack.push(!stack.pop());
 			case NEG: stack.push(-stack.pop());
