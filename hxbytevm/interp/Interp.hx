@@ -153,6 +153,51 @@ class Interp {
 		return None;
 	}
 
+	public function getGetSetFromExpr(e: Expr): Array<Dynamic> {
+		var getter:Void->Dynamic = () -> null;
+		var setter:Dynamic = (val) -> null;
+		switch(e.expr) {
+			case EConst(CIdent(name)):
+				switch getVar(name) {
+					case Some(v):
+						getter = () -> v.value;
+						setter = (val) -> v.value = val;
+					case None:
+						throw "Unknown variable " + name;
+				}
+			case EField(e, name, s):
+				switch getVarFromExpr(e) {
+					case Some(v):
+						if(s == EFSafe) {
+							if(v.value == null)
+								return null;
+							getter = () -> UnsafeReflect.getProperty(v.value, name);
+							setter = (val) -> UnsafeReflect.setProperty(v.value, name, val);
+						} else {
+							getter = () -> UnsafeReflect.getProperty(v.value, name);
+							setter = (val) -> UnsafeReflect.setProperty(v.value, name, val);
+						}
+					case None:
+						throw "Unknown variable " + name;
+				}
+			case EArray(arr, index):
+				var arr:Dynamic = expr(arr);
+				var index:Dynamic = expr(index);
+				if(arr is IMap) {
+					var map = cast(arr, IMap<Dynamic, Dynamic>);
+					getter = () -> map.get(index);
+					setter = (val) -> map.set(index, val);
+				} else {
+					var arr = cast(arr, Array<Dynamic>);
+					var index:Int = cast(index, Int);
+					getter = () -> arr[index];
+					setter = (val) -> arr[index] = val;
+				}
+			default: throw "Unknown getter/setter handing for expression " + e;
+		}
+		return [getter, setter];
+	}
+
 	public function expr(e: Expr):Dynamic {
 		if (e == null)
 			return null;
@@ -268,21 +313,19 @@ class Interp {
 						//	case None: throw "Unknown variable " + e1;
 						//}
 						throw "Binop assign op not implemented";
-					case BOpIn:
+					case BOpIn | BOpArrow:
 						throw "Unknown binop " + op;
 					case BOpInterval:
-						throw "Unknown binop " + op;
-					case BOpArrow:
-						throw "Unknown binop " + op;
+						return new IntIterator(expr(e1), expr(e2));
 					//default:
 				}
 				throw "Unknown binop " + op;
 			case EField(e, name, EFNormal):
 				var e = expr(e);
-				return Reflect.field(e, name);
+				return Reflect.getProperty(e, name);
 			case EField(e, name, EFSafe):
 				var e = expr(e);
-				return e != null ? UnsafeReflect.field(e, name) : null;
+				return e != null ? UnsafeReflect.getProperty(e, name) : null;
 			case EParenthesis(e):
 				return expr(e);
 			case EObjectDecl(fields):
@@ -333,17 +376,30 @@ class Interp {
 				var args = [for (a in args) expr(a)];
 				return Type.createInstance(cls, args);
 			case EUnop(op, op_flag, e):
-				var e:Dynamic = expr(e);
-				return switch (op) {
-					case UIncrement if (op_flag == UFPostfix): e++;
-					case UDecrement if (op_flag == UFPostfix): e--;
-					case UIncrement if (op_flag == UFPrefix): ++e;
-					case UDecrement if (op_flag == UFPrefix): --e;
-					case UNot: !e;
-					case UNeg: ~e;
-					case UNegBits: Std.int(~e);
-					// case USpread: throw "Unknown unop";
-					default: throw "Unknown unop";
+				switch(op) {
+					case UIncrement | UDecrement:
+						var __ = getGetSetFromExpr(e);
+						var getter:Void->Dynamic = __[0];
+						var setter:Dynamic = __[1];
+
+						var delta = switch (op) {
+							case UIncrement: 1;
+							case UDecrement: -1;
+							default: throw "Unknown unop";
+						}
+
+						var val = getter();
+						setter(op_flag == UFPrefix ? val += delta : val + delta);
+						return val;
+					default:
+						if(op_flag == UFPostfix) throw "Unknown postfix unop";
+						var e:Dynamic = expr(e);
+						return switch (op) {
+							case UNot: !e;
+							case UNeg: -e;
+							case UNegBits: ~e;
+							default: throw "Unknown unop";
+						}
 				}
 			case EVars(vars):
 				for(v in vars) {
@@ -351,7 +407,6 @@ class Interp {
 				}
 				return null;
 			case EFunction(fk, fun):
-				// var args = [for (a in f.f_params) a.tp_name.string];
 				var totalArgs = 0;
 				var minArgs = 0;
 				for (a in fun.args) {
@@ -401,39 +456,13 @@ class Interp {
 						}
 					}
 					depth--;
-
-					#if cpp
-					untyped __cpp__(' return ret;
-					}
-
-					const char *mName;
-
-					::String __ToString() const{ return String(mName); }
-
-					::Dynamic __DO_NOT_RUN__() {
-						#ifdef HXCPP_STACK_TRACE
-						::hx::StackFrame _hx_stackframe(0);
-						#endif
-						::Dynamic ret = 0;
-					');
-					#end
 					return ret;
 				}
-				#if cpp
-				untyped {
-					__cpp__("
-					_hx_Closure_0* ft = dynamic_cast<_hx_Closure_0 *>({0}.mPtr);
-					ft->mName = {1}.__s;
-					", f, funcName);
-				}
-				#end
-				return Reflect.makeVarArgs(f);
+
+				return RuntimeUtils.getNamedVarArgsFunction(funcName, f);
 			case EBlock(exprs):
 				var ret = null;
 				depth++;
-				//for (e in exprs) {
-				//	ret = expr(e);
-				//}
 				var exprs:Vector<Expr> = cast exprs;
 				for (i in 0...exprs.length) {
 					ret = expr(exprs[i]);
