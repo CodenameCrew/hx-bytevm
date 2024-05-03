@@ -1,45 +1,136 @@
 package hxbytevm.vm;
 
-enum OpCode {
-	OPush; // 1 STORAGE SPACE: Pushes storage1 to stack
-	OSave; // 2 STORAGE SPACE: Pushes stack[storage1] to variables[storage2], removing it from the stack
-	ORet; // 1 STORAGE SPACE: Returns stack[storage1], removing it from the stack
+import hxbytevm.core.Ast.Unop;
+import hxbytevm.core.Ast.Binop;
+import hxbytevm.core.Ast.WhileFlag;
+import hxbytevm.core.Ast.Func;
+import hxbytevm.core.Ast.FunctionKind;
+import hxbytevm.utils.UnsafeReflect;
 
-	OJump; // 1 STORAGE SPACE: Moves instruction pointer to storage1
+enum abstract OpCode(Int) {
+	var PUSH:OpCode = 0; // 1 STORAGE SPACE: Pushes storage1 to stack
+	var POP:OpCode = 1; // 0 STORAGE SPACE: Pops stack
 
-	OBlockStart; // 1 STORAGE SPACE: Defines a the start of a block section, storage1 being the instruction pointer of the end block
-	OBlockEnd; // 1 STORAGE SPACE: Defines a the end of a block section, storage1 being the instruction pointer of the start block
+	var SAVE:OpCode = 2; // 1 STORAGE SPACE: Pushes stack[stacktop] to variables[storage1], removing it from the stack
+	var RET:OpCode = 3; // 0 STORAGE SPACE: Returns stack[stacktop], removing it from the stack
 
-	OFunc; // 2 STORAGE SPACE: Defines a function, storage1 being FunctionKind and storage2 being Func (refer to ExprDef in core/Ast.hx), expects a OBlock directly after
-	OWhile; // 2 STORAGE SPACE: Defines a while loop, storage1 being the stack postion of condition of the while, storage2 being the while flag (refer to WhileFlag in core/Ast.hx), expects a OBlock directly after
+	var JUMP:OpCode = 4; // 2 STORAGE SPACE: Moves instruction pointer to storage1, Moves storage pointer to storage2
 
-	OCall; // 2 STORAGE SPACE: Calls storage1 (a function), with a array of args from storage2
-	OField; // 2 STORAGE SPACE: Gets field storage2 (a string) from storage1 (anything that has fields)
+	var FUNC:OpCode = 5; // 2 STORAGE SPACE: Defines a function, storage1 being FunctionKind and storage2 being Func (refer to ExprDef in core/Ast.hx), expects a OBlock directly after
+	var WHILE:OpCode = 6; // 1 STORAGE SPACE: Defines a while loop, stack[stacktop] being the stack postion of condition of the while, storage2 being the while flag (refer to WhileFlag in core/Ast.hx), expects a OBlock directly after
 
-	OArray; // 1 STORAGE SPACE: Creates a array from stack top, going down by storage1 and pushes it to stack (while removing all values added to the array)
-	ONew; // 2 STORAGE SPACE: Creates a instance from storage1 being PlacedTypePath (refer to PlacedTypePath in core/Ast.hx) with args from stack[storage2], removing storage2 from stack and pushing the new instance to stack
+	var CALL:OpCode = 7; // 0 STORAGE SPACE: Calls stack[stacktop-1] (a function), with a array of args from stack[stacktop], return is pushed to stacktop
+	var FIELD:OpCode = 8; // 1 STORAGE SPACE: Gets field storage2 (a string) from stack[stacktop], pushing to stack
+	var ARRAYACCESS:OpCode = 9; // 1 STORAGE SPACE: Gets index storage1 from stack[stacktop], pushing to stack
 
-	OAdd; // 0 STORAGE SPACE: Adds the last 2 in stack, which is then added back to stack, removing the 2 values
-	OSub; // 0 STORAGE SPACE: Subtracts the last 2 in stack, which is then added back to stack, removing the 2 values
-	OMult; // 0 STORAGE SPACE: Multiplys the last 2 in stack, which is then added back to stack, removing the 2 values
-	ODiv; // 0 STORAGE SPACE: Divides the last 2 in stack, which is then added back to stack, removing the 2 values
+	var NEW:OpCode = 10; // 2 STORAGE SPACE: Creates a instance from variables[storage1] being a class with args from stack[stacktop], removing storage2 from stack and pushing the new instance to stack
+
+	var BINOP:OpCode = 11; // 1 STORAGE SPACE: Prefroms storage1 being Binop (refer to Binop in core/Ast.hx, BINOPASSIGN WILL NOT WORK!!) on last 2 in stack, popping them and pushing the result to stack
+	var UNOP:OpCode = 12; // 1 STORAGE SPACE: Preformas storage1 being Unop (refer to Unop in core/Ast.hx, BINOPASSIGN WILL NOT WORK!!) on stack[stacktop], popping it and pushing the result
 }
 
 typedef Program = {
 	var intructions:Array<OpCode>;
-	var storage:Array<Dynamic>;
+	var storages:Array<Dynamic>;
 }
 
-
 class HVM {
-	public function new() {}
-
+	var stack:Stack = new Stack();
 	var depth:Int = 0;
 
 	var intructions:Array<OpCode>;
-	var storage:Array<Dynamic>;
-	public function run(program:Program) {
+	var storages:Array<Dynamic>;
+
+	// pointers
+	var ip:Int = 0;
+	var sp:Int = 0;
+
+	var _varnames:Array<String> = [];
+	var _variables:Array<Dynamic> = [];
+
+	public var variables:Variables;
+
+	public function new() {}
+
+	public function reset() {
+		ip = 0; sp = 0;
+		stack = new Stack();
+		depth = 0;
+
+		_varnames = [];
+		_variables = [];
+
+		intructions = [];
+		storages = [];
+	}
+
+	public function run(program:Program):Dynamic {
+		reset();
+
 		intructions = program.intructions;
-		storage = program.storage;
+		storages = program.storages;
+
+		while (ip <= intructions.length-1) {
+			instruction(intructions[ip]);
+			ip++;
+		}
+
+		return ret;
+	}
+
+	public inline function storage():Dynamic {
+		var ret = storages[sp];
+		sp++; return ret;
+	}
+
+	var ret:Dynamic = null;
+	public function instruction(instruction:OpCode):Dynamic {
+		switch (intructions[ip]) {
+			case PUSH: stack.push(storage());
+			case POP: stack.pop();
+			case SAVE: _variables[storage()] = stack.pop();
+			case RET: ret = stack.pop();
+			case JUMP: sp = storage(); ip = storage();
+			case FUNC: // TODO: IMPLEMENT FUNCTIONS
+				var kind:FunctionKind = cast storage();
+				var func:Func = cast storage();
+
+			case WHILE: // TODO: IMPLEMENT WHILE LOOPS
+				var flag:WhileFlag = storage();
+				var condition:Bool = stack.pop();
+
+			case CALL:
+				var args = storage();
+				var func = storage();
+
+				if(func == null) throw "Cannot call null";
+				if(!UnsafeReflect.isFunction(func))
+					throw "Cannot call non function";
+				stack.push(UnsafeReflect.callMethodSafe(null, func, args));
+			case FIELD: stack.push(UnsafeReflect.field(stack.pop(), storage()));
+			case ARRAYACCESS: stack.push(stack.top()[storage()]);
+			case NEW: stack.push(Type.createInstance(_variables[storage()], stack.pop()));
+			case BINOP:
+				var v2 = stack.pop();
+				var v1 = stack.pop();
+
+				var binop:Binop = cast storage();
+				switch (binop) {
+					case BOpAdd: stack.push(v1 + v2);
+					case BOpEq: stack.push(v1 == v2);
+					default: throw "Unknown Binop";
+				}
+			case UNOP:
+				var v = stack.pop();
+
+				var unop:Unop = cast storage();
+				switch (unop) {
+					case UNeg: stack.push(-v);
+					default: throw "Unknown Unop";
+				}
+		}
+		return null;
 	}
 }
+
+class Variables {} // TODO: BACKWARDS COMPAT

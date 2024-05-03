@@ -1,0 +1,33 @@
+# Generic Haxe stuffs to make the project compile
+-cp src
+-cp ../
+-D analyzer-optimize
+-main Main
+
+# Libraries (MAKE SURE TO KEEP THIS IN SYNC WITH ALL BUILD FILES)
+# --library hscript-improved
+# --library hxcpp-debug-server
+
+# Defines (MAKE SURE TO KEEP THIS IN SYNC WITH ALL BUILD FILES)
+--define HXCPP_CHECK_POINTER
+--define HXCPP_STACK_LINE
+--define HXCPP_DEBUG_LINK
+# -D HXCPP_M64
+# -D HXCPP_ARM64
+--dce no
+
+# File Specific Defines
+--define macos
+--define mac
+
+--macro keep('IntIterator')
+# --macro hscript.macros.UsingHandler.init()
+# --macro hscript.macros.ClassExtendMacro.init()
+
+
+# Copying the assets from source code to bin folder
+--cmd rm -rf bin/cpp/assets
+--cmd cp -r assets bin/cpp/assets
+--cpp bin/cpp
+--cmd cd bin/cpp
+--cmd ./Main

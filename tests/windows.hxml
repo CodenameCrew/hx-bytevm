@@ -1,0 +1,24 @@
+# Generic Haxe stuffs to make the project compile
+-cp src
+-cp ../
+-D analyzer-optimize
+-main Main
+
+# Libraries (MAKE SURE TO KEEP THIS IN SYNC WITH ALL BUILD FILES)
+# --library hscript-improved
+# --library hxcpp-debug-server
+
+# Defines (MAKE SURE TO KEEP THIS IN SYNC WITH ALL BUILD FILES)
+--define HXCPP_CHECK_POINTER
+--define HXCPP_STACK_LINE
+--define HXCPP_DEBUG_LINK
+--dce no
+
+# File Specific Defines
+--define windows
+
+# Copying the assets from source code to bin folder
+# --cmd Xcopy assets\ bin\cpp\assets\ /E /H /C /I /Y
+--cpp bin/cpp
+--cmd cd bin/cpp
+--cmd Main.exe

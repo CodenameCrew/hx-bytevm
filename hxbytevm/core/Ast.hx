@@ -122,7 +122,11 @@ typedef TypePath = {
 	var tsub : String ;
 }
 
-typedef Pos = Int; // TODO : find this in ast
+typedef Pos = {
+	var min : Int ;
+	var max : Int ;
+	var file : String ;
+};
 
 typedef PlacedTypePath = {
 	var path : TypePath ;
@@ -173,7 +177,7 @@ typedef PlacedName = {
 
 enum FunctionKind {
 	FKAnonymous;
-	FKNamed( placed_name : PlacedName , _inline : Bool );
+	FKNamed( placed_name : PlacedName , in_line : Bool );
 	FKArrow;
 }
 
