@@ -7,7 +7,7 @@ import hxbytevm.core.Ast.Func;
 import hxbytevm.core.Ast.FunctionKind;
 import hxbytevm.utils.UnsafeReflect;
 
-enum abstract OpCode(Int) {
+enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var PUSH:OpCode = 0; // 1 STORAGE SPACE: Pushes storage1 to stack
 	var POP:OpCode = 1; // 0 STORAGE SPACE: Pops stack
 
@@ -21,12 +21,19 @@ enum abstract OpCode(Int) {
 
 	var CALL:OpCode = 7; // 0 STORAGE SPACE: Calls stack[stacktop-1] (a function), with a array of args from stack[stacktop], return is pushed to stacktop
 	var FIELD:OpCode = 8; // 1 STORAGE SPACE: Gets field storage2 (a string) from stack[stacktop], pushing to stack
-	var ARRAYACCESS:OpCode = 9; // 1 STORAGE SPACE: Gets index storage1 from stack[stacktop], pushing to stack
 
 	var NEW:OpCode = 10; // 2 STORAGE SPACE: Creates a instance from variables[storage1] being a class with args from stack[stacktop], removing storage2 from stack and pushing the new instance to stack
 
 	var BINOP:OpCode = 11; // 1 STORAGE SPACE: Prefroms storage1 being Binop (refer to Binop in core/Ast.hx, BINOPASSIGN WILL NOT WORK!!) on last 2 in stack, popping them and pushing the result to stack
 	var UNOP:OpCode = 12; // 1 STORAGE SPACE: Preformas storage1 being Unop (refer to Unop in core/Ast.hx, BINOPASSIGN WILL NOT WORK!!) on stack[stacktop], popping it and pushing the result
+
+	var PUSH_ARRAY:OpCode = 13; // 0 STORAGE SPACE: Pushes a empty array to stack
+	var PUSH_TRUE:OpCode = 14; // 0 STORAGE SPACE: Pushes a true to stack
+	var PUSH_FALSE:OpCode = 15; // 0 STORAGE SPACE: Pushes a false to stack
+	var PUSH_NULL:OpCode = 16; // 0 STORAGE SPACE: Pushes a null to stack
+
+	var ARRAY_GET:OpCode = 17; // 2 STORAGE SPACE: Gets index storage1 from stack[storage2], pushing to stack
+	var ARRAY_SET:OpCode = 18; // 2 STORAGE SPACE: Sets index storage1 from stack[storage2], popping it from stack
 }
 
 typedef Program = {
@@ -62,6 +69,8 @@ class HVM {
 
 		intructions = [];
 		storages = [];
+
+		ret = null;
 	}
 
 	public function run(program:Program):Dynamic {
@@ -100,15 +109,15 @@ class HVM {
 				var condition:Bool = stack.pop();
 
 			case CALL:
-				var args = storage();
-				var func = storage();
+				var args = stack.pop();
+				var func = stack.pop();
 
 				if(func == null) throw "Cannot call null";
 				if(!UnsafeReflect.isFunction(func))
 					throw "Cannot call non function";
-				stack.push(UnsafeReflect.callMethodSafe(null, func, args));
+				stack.push(UnsafeReflect.callMethodUnsafe(null, func, args));
+
 			case FIELD: stack.push(UnsafeReflect.field(stack.pop(), storage()));
-			case ARRAYACCESS: stack.push(stack.top()[storage()]);
 			case NEW: stack.push(Type.createInstance(_variables[storage()], stack.pop()));
 			case BINOP:
 				var v2 = stack.pop();
@@ -128,6 +137,19 @@ class HVM {
 					case UNeg: stack.push(-v);
 					default: throw "Unknown Unop";
 				}
+			case PUSH_ARRAY: stack.push([]);
+			case PUSH_TRUE: stack.push(true);
+			case PUSH_FALSE: stack.push(false);
+			case PUSH_NULL: stack.push(null);
+			case ARRAY_GET:
+				var array_i = storage();
+				var array_s = storage();
+				stack.push(stack.stack[array_s][array_i]);
+
+			case ARRAY_SET:
+				var array_i = storage();
+				var array_s = storage();
+				stack.stack[array_s][array_i] = stack.pop();
 		}
 		return null;
 	}

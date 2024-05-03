@@ -26,5 +26,5 @@ class Stack {
 		stack.resize(stack.length + (stack.length > MAX_STACK_GROW ? MAX_STACK_GROW : stack.length));
 
 	public inline function top():Dynamic
-		return stack[stackTop];
+		return stack[stackTop-1];
 }
