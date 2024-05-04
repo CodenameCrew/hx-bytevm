@@ -448,7 +448,7 @@ class Interp {
 					case FArrow: null;
 				};
 				var argsFunc =  RuntimeUtils.getNamedVarArgsFunction(funcName, f);
-				pushVar(pureFuncName, argsFunc);
+				if (pureFuncName != null) pushVar(pureFuncName, argsFunc);
 				return argsFunc;
 			case EBlock(exprs):
 				var ret = null;
