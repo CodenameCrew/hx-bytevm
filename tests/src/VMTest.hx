@@ -17,9 +17,9 @@ class VMTest {
 		varnames_stack: []
 	};
 
-	public static var PROGRAM_IF:Program = {
-		intructions: [PUSHC, PUSHC, EQ, RET],
-		read_only_stack: [0, 1],
+	public static var PROGRAM_IF_ELSE:Program = {
+		intructions: [PUSHC, PUSHC, EQ, NOT, JUMP_COND, PUSH, JUMP, PUSH, RET],
+		read_only_stack: [0, 1, 7, 6, "YEAH :D", 8, 7, "NAH :("],
 		constant_stack: [2, 8],
 		varnames_stack: []
 	};
@@ -31,7 +31,7 @@ class VMTest {
 		varnames_stack: []
 	};
 
-	public static var PROGRAM_WHILE:Program = {
+	public static var PROGRAM_DO_WHILE:Program = {
 		intructions: [PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
 		read_only_stack: [0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
 		constant_stack: [0, 10, "DO WHILE LOOP (i):  "],
@@ -44,14 +44,22 @@ class VMTest {
 
 		Sys.println(Util.getTitle("PROGRAM ADD"));
 		trace(hvm.run(PROGRAM_ADD));
+
 		Sys.println(Util.getTitle("PROGRAM NEG"));
 		trace(hvm.run(PROGRAM_NEG));
-		Sys.println(Util.getTitle("PROGRAM IF"));
-		trace(hvm.run(PROGRAM_IF));
+
+		Sys.println(Util.getTitle('PROGRAM IF ELSE (${PROGRAM_IF_ELSE.constant_stack[0]} == ${PROGRAM_IF_ELSE.constant_stack[1]})'));
+		trace(hvm.run(PROGRAM_IF_ELSE));
+
+		PROGRAM_IF_ELSE.constant_stack = [10, 10];
+		Sys.println(Util.getTitle('PROGRAM IF ELSE (${PROGRAM_IF_ELSE.constant_stack[0]} == ${PROGRAM_IF_ELSE.constant_stack[1]})'));
+		trace(hvm.run(PROGRAM_IF_ELSE));
+
 		Sys.println(Util.getTitle("PROGRAM CALL"));
 		hvm.run(PROGRAM_CALL);
-		Sys.println(Util.getTitle("PROGRAM WHILE"));
-		hvm.run(PROGRAM_WHILE);
+
+		Sys.println(Util.getTitle("PROGRAM DO WHILE"));
+		hvm.run(PROGRAM_DO_WHILE);
 	}
 
 	public static function function_test(arg1:Int, arg2:Bool) {

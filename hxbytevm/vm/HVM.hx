@@ -22,7 +22,6 @@ class HVM {
 	var ip:Int = 0;
 	var rp:Int = 0;
 
-	// TODO: Handle scope, variablenames for each scope
 	@:noCompletion public var _varnames:Array<String> = [];
 	@:noCompletion public var _variables:Array<Dynamic> = [];
 
@@ -88,9 +87,17 @@ class HVM {
 				var i = get_rom();
 				rp = r; ip = i;
 			case JUMP_COND:
+				var r = get_rom();
+				var i = get_rom();
+
 				if (stack.pop() == true) {
-					var r = get_rom();
-					var i = get_rom();
+					rp = r; ip = i;
+				}
+			case JUMP_N_COND:
+				var r = get_rom();
+				var i = get_rom();
+
+				if (stack.pop() == false) {
 					rp = r; ip = i;
 				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
@@ -111,6 +118,7 @@ class HVM {
 			case PUSH_TRUE: stack.push(true);
 			case PUSH_FALSE: stack.push(false);
 			case PUSH_NULL: stack.push(null);
+			case PUSH_OBJECT: stack.push({});
 			case ARRAY_GET:
 				var array_i = get_rom();
 				var array_s = get_rom();
