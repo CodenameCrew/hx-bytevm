@@ -1,6 +1,6 @@
 package hxbytevm.vm;
 
-import hxbytevm.compilier.Compilier.Pointer;
+import hxbytevm.compiler.Compiler.Pointer;
 import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
@@ -10,9 +10,9 @@ class Program {
 	public var read_only_stack:Array<StackValue>;
 	public var constant_stack:Array<StackValue>;
 	public var varnames_stack:Array<Array<String>>;
-	public var function_pointers:Map<String, Array<Pointer>> = [];
+	public var function_pointers:Map<String, Pointer> = [];
 
-	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, function_pointers:Map<String, Array<Pointer>>) {
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, function_pointers:Map<String, Pointer>) {
 		this.instructions = instructions;
 		this.read_only_stack = read_only_stack;
 		this.constant_stack = constant_stack;
@@ -23,6 +23,8 @@ class Program {
 	public function print() {
 		var prints:Array<Array<String>> = [["IP"], ["RP"], ["D"], ["CODE"], ["ROM"]];
 		var printsSizes:Array<Int> = [0, 0, 0];
+
+		trace(instructions, read_only_stack, constant_stack, varnames_stack, function_pointers);
 
 		var dp:Int = 0;
 		var rp:Int = 0;
@@ -43,6 +45,8 @@ class Program {
 				default:
 			}
 
+			trace(i, print_opcode(ip), rp, dp);
+
 			switch (ip) {
 				case PUSH: prints[4].push('VAR:       ${get_rom()}');
 				case PUSHV | SAVE:
@@ -51,6 +55,7 @@ class Program {
 				case PUSHV_D | SAVE_D:
 					var d = get_rom();
 					var v_id = get_rom();
+					trace(varnames_stack[d], d, v_id);
 					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
 				case PUSHC:
 					var c_id = get_rom();
@@ -120,6 +125,7 @@ class Program {
 
 			case FUNC: "FUNC";
 			case CALL: "CALL";
+			case LOCAL_CALL: "LOCAL_CALL";
 			case FIELD_SET: "FIELD_SET";
 			case FIELD_GET: "FIELD_GET";
 			case NEW: "NEW";
@@ -164,6 +170,8 @@ class Program {
 			case NGBITS: "NGBITS";
 			case DUP: "DUP";
 			case STK_OFF: "STK_OFF";
+
+			case LENGTH: "LENGTH";
 		}
 	}
 

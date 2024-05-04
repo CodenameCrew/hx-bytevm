@@ -1,4 +1,4 @@
-package hxbytevm.compilier;
+package hxbytevm.compiler;
 
 import hxbytevm.utils.HelperUtils;
 import hxbytevm.vm.OpCode;
@@ -20,7 +20,7 @@ class Pointer {
 	}
 }
 
-class Compilier {
+class Compiler {
 	public var program(default, null):Program;
 
 	public function new() {}
@@ -40,6 +40,7 @@ class Compilier {
 	public function pushConstant(c:Dynamic) {
 		var idx = getConstant(c);
 		program.read_only_stack.push(idx);
+		trace("Pushed constant " + c + " to stack at index " + idx);
 		program.instructions.push(PUSHC);
 	}
 
@@ -68,8 +69,9 @@ class Compilier {
 	public function pushVar(vname:String) {
 		var index:Int = -1;
 		var depth:Int = this.depth;
-		for (d => varnames in program.varnames_stack) {
-			var idx:Int = varnames.indexOf(vname);
+		for (d in 0...program.varnames_stack.length) {
+			if(program.varnames_stack[d] == null) program.varnames_stack[d] = [];
+			var idx:Int = program.varnames_stack[d].indexOf(vname);
 			if (idx != -1) {index = idx; depth = d; break;}
 		}
 
@@ -146,6 +148,7 @@ class Compilier {
 	private var declaredVars:Array<String> = [];
 
 	private function _compile(expr:Expr) {
+		trace("Compiling " + expr.expr);
 		switch (expr.expr) {
 			case EConst(c):
 				switch (c) {
@@ -270,10 +273,10 @@ class Compilier {
 					// todo handle isFinal, isStatic, isPublic
 					declaredVars.push(v.name.string);
 					_compile(v.expr);
-					if(depth == 0) {
+					//if(depth == 0) { // todo we dont need variables for non 0-depth
 						program.read_only_stack.push(getVarInDepth(v.name.string, depth));
 						program.instructions.push(SAVE);
-					}
+					//}
 				}
 			case EIf(econd, eif, eelse) | ETernary(econd, eif, eelse):
 				var end_p = pointer();
@@ -340,7 +343,7 @@ class Compilier {
 
 				var it:Dynamic->Iterator<Dynamic> = (hasKey ? RuntimeUtils.keyValueIterator : RuntimeUtils.iterator);
 
-				program.instructions.push(DEPTH_INC);
+				program.instructions.push(DEPTH_INC); depth++;
 
 				program.read_only_stack.push(it);
 				program.instructions.push(PUSH);
@@ -352,13 +355,14 @@ class Compilier {
 				// continueBreakStackLabel.push(pointer());
 				program.read_only_stack.push(-1); // hasNext
 				program.instructions.push(STK_OFF);
-				program.instructions.push(PUSH_ARRAY);
+				program.read_only_stack.push(0);
 				program.instructions.push(CALL);
 				program.instructions.push(JUMP_N_COND);
 				// inner body
 
 				program.read_only_stack.push(-0); // next
 				program.instructions.push(STK_OFF);
+				program.read_only_stack.push(0);
 				program.instructions.push(CALL);
 
 				if(hasKey) {
@@ -367,18 +371,18 @@ class Compilier {
 						program.read_only_stack.push("key");
 						program.instructions.push(FIELD_GET);
 
-						program.read_only_stack.push(keyvar);
+						program.read_only_stack.push(getVarInDepth(keyvar, depth));
 						program.instructions.push(SAVE);
 
 					// valuevar = next.value;
 						program.read_only_stack.push("value");
 						program.instructions.push(FIELD_GET);
 
-						program.read_only_stack.push(valuevar);
+						program.read_only_stack.push(getVarInDepth(valuevar, depth));
 						program.instructions.push(SAVE);
 				} else {
 					// valuevar = next;
-						program.read_only_stack.push(valuevar);
+						program.read_only_stack.push(getVarInDepth(valuevar, depth));
 						program.instructions.push(SAVE);
 				}
 
@@ -390,7 +394,7 @@ class Compilier {
 				program.instructions.push(POP); // Pop the next function
 				program.instructions.push(POP); // Pop the hasNext function
 
-				program.instructions.push(DEPTH_DNC);
+				program.instructions.push(DEPTH_DNC); depth--;
 
 				// continueBreakStack.pop();
 				// continueBreakStackLabel.pop();
@@ -409,22 +413,71 @@ class Compilier {
 				else
 					program.instructions.push(PUSH_NULL);
 				program.instructions.push(RET);
-			case EFunction(name, f):
+			case EFunction(kind, f):
+				// Hacky method to make it skip the function, todo make it place it at the end of the program
+				var skipFunc_p = pointer();
+				program.read_only_stack.push(skipFunc_p);
+				program.instructions.push(JUMP);
+
 				var func = f.expr;
 				var args = f.args;
 
-				program.instructions.push(DEPTH_INC);
-
-				// Increase scope
-				// so should we increase scope now then add the args based on name?
-				// or args from stack?
-
 				var func_s = pointer();
 
-				program.instructions.push(FUNC);
+				program.instructions.push(DEPTH_INC); depth++;
 
-				program.read_only_stack.push(name);
-				program.read_only_stack.push(f);
+				trace("Compiling function");
+
+				// Stack: [args]
+
+				/*
+				for (i in 0...fargs.length) {
+					if(fargs[i].opt) {
+						if(i > args.length) {
+							if(fargs[i].value != null) {
+								_compile(fargs[i].value);
+							} else {
+								push(null);
+							}
+						} else {
+							push(args[i]);
+						}
+					} else {
+						push(args[i]);
+					}
+				*/
+
+
+				// TODO: maybe make a op code for this?
+				for(i in 0...args.length) {
+					var pushArgPointer = pointer();
+					var endPointer = pointer();
+					var arg = args[i];
+					if(arg.opt) {
+						program.instructions.push(LENGTH); // Stack: [args, args.length]
+						pushConstant(i); // Stack: [args, args.length, i]
+						program.instructions.push(LT); // Stack: [args, args.length < i]
+						program.read_only_stack.push(pushArgPointer);
+						program.instructions.push(JUMP_N_COND); // Stack: [args]
+						var value = arg.value;
+						if(value != null) { // make it so args[i] == null runs the default value (TODO: test if this happens)
+							_compile(value); // Stack: [args, value]
+						} else {
+							program.instructions.push(PUSH_NULL); // Stack: [args, null]
+						}
+						program.read_only_stack.push(endPointer);
+						program.instructions.push(JUMP);
+					}
+					pointer_update(pushArgPointer);
+					pushConstant(i);
+					program.instructions.push(ARRAY_GET); // Stack: [args, args[i]]
+					pointer_update(endPointer);
+
+					getVarInDepth(arg.name.string, depth);
+					program.instructions.push(POP); // TODO: arguments
+					//program.read_only_stack.push(getVarInDepth(arg.name.string, depth));
+					program.instructions.push(SAVE_D);
+				}
 
 				// yea
 				// makes blocks not increase scope
@@ -437,7 +490,10 @@ class Compilier {
 						_compile(func);
 				}
 
-				program.instructions.push(DEPTH_DNC);
+				program.instructions.push(DEPTH_DNC); depth--;
+				program.instructions.push(RET);
+
+				pointer_update(skipFunc_p);
 
 
 				/*PUSH LOCAL_FUNC_POINTER
@@ -459,31 +515,44 @@ class Compilier {
 					// ill do the stuf in hvm to make this work
 
 				*/
-				var func_end_p = pointer();
+				//var func_end_p = pointer();
 
-				program.function_pointers.set(name.string, [func_start_p, func_end_p]);
+				switch(kind) {
+					case FArrow | FAnonymous:
+						program.read_only_stack.push(func_s);
+						program.instructions.push(PUSH); // make the function be on the stack
+					case FNamed(name, isInline):
+						program.read_only_stack.push(func_s);
+						program.instructions.push(PUSH);
+						program.read_only_stack.push(getVarInDepth(name.string, depth));
+						program.instructions.push(SAVE);
+						pushVar(name.string);
+						program.function_pointers.set(name.string, func_s); // TODO: store min args
+				}
+
+				trace("Compiled function");
 
 			case EField(e, field, safe):
 				var isSafe = safe == EFSafe;
-					var end_p = pointer();
-					var null_p = pointer();
-					_compile(e);
-					if(isSafe) {
-						program.instructions.push(DUP);
-						program.instructions.push(PUSH_NULL);
-						program.instructions.push(EQ);
-						program.read_only_stack.push(null_p);
-						program.instructions.push(JUMP_COND);
-					}
-					pushConstant(field);
-					program.instructions.push(FIELD_GET);
-					if(isSafe) {
-						program.read_only_stack.push(end_p);
-						program.instructions.push(JUMP_COND);
-						pointer_update(null_p);
-						program.instructions.push(PUSH_NULL);
-					}
-					pointer_update(end_p);
+				var end_p = pointer();
+				var null_p = pointer();
+				_compile(e);
+				if(isSafe) {
+					program.instructions.push(DUP);
+					program.instructions.push(PUSH_NULL);
+					program.instructions.push(EQ);
+					program.read_only_stack.push(null_p);
+					program.instructions.push(JUMP_COND);
+				}
+				pushConstant(field);
+				program.instructions.push(FIELD_GET);
+				if(isSafe) {
+					program.read_only_stack.push(end_p);
+					program.instructions.push(JUMP_COND);
+					pointer_update(null_p);
+					program.instructions.push(PUSH_NULL);
+				}
+				pointer_update(end_p);
 			case EArray(e1, e2):
 				_compile(e1); // arr
 				_compile(e2); // index
@@ -625,16 +694,36 @@ class Compilier {
 					case USpread: throw "Spread not implemented";
 				}
 			case ECall(e, args):
-				_compile(e);
-				for (a in args) {
-					_compile(a);
+				var isLocal = false;
+				var localPointer = null;
+				switch (e.expr) {
+					case EConst(CIdent(name)):
+						var func_s = program.function_pointers.get(name);
+						if (func_s != null) {
+							isLocal = true;
+							localPointer = func_s;
+						}
+					default:
 				}
-				program.read_only_stack.push(args.length);
-				program.instructions.push(ARRAY_STACK);
-				program.instructions.push(CALL);
 
-				// TODO: check if anything uses return and do not pop it if it does
-				program.instructions.push(POP); // the return val gets pushed to stack by CALL
+				if(isLocal) {
+					program.read_only_stack.push(localPointer);
+					for (a in args) {
+						_compile(a);
+					}
+					program.read_only_stack.push(args.length);
+					program.instructions.push(LOCAL_CALL);
+				} else {
+					_compile(e);
+					for (a in args) {
+						_compile(a);
+					}
+					program.read_only_stack.push(args.length);
+					program.instructions.push(CALL);
+
+					// TODO: check if anything uses return and do not pop it if it does
+					program.instructions.push(POP); // the return val gets pushed to stack by CALL
+				}
 			case EObjectDecl(fields):
 				program.instructions.push(PUSH_OBJECT);
 				for (f in fields) {
@@ -642,7 +731,10 @@ class Compilier {
 					pushConstant(f.field);
 					program.instructions.push(FIELD_SET);
 				}
+
 		}
+		trace(expr.expr);
+		trace(program.print());
 	}
 
 	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

@@ -172,7 +172,7 @@ typedef PlacedName = {
 
 enum FunctionKind {
 	FAnonymous;
-	FNamed( placed_name : PlacedName , in_line : Bool );
+	FNamed( placed_name : PlacedName , isInline : Bool );
 	FArrow;
 }
 

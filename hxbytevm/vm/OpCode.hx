@@ -71,4 +71,6 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 
 	var DUP:OpCode; // 0 ROM SPACE: duplicates stack[stacktop], pushing it to stack
 	var STK_OFF:OpCode; // 1 ROM SPACE: gets stack[stacktop+ROM1], pushing it to stack
+
+	var LENGTH:OpCode; // 0 ROM SPACE: pushes the length of the last array in stack, pushing it to the stack
 }

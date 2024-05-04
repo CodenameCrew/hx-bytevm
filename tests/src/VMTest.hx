@@ -29,7 +29,7 @@ class VMTest {
 	);
 
 	public static var PROGRAM_CALL:Program = new Program(
-		[PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL],
+		[PUSH, PUSHC, PUSH_TRUE, CALL],
 		[function_test, 0, 2],
 		[2],
 		[[]],
@@ -37,7 +37,7 @@ class VMTest {
 	);
 
 	public static var PROGRAM_DO_WHILE:Program = new Program(
-		[PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
+		[PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
 		[0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
 		[0, 10, "DO WHILE LOOP (i):  "],
 		[["i"]],
