@@ -27,14 +27,15 @@ class Compiler {
 
 	public function reset() {
 		program = Program.createEmpty(); depth = 0;
-		pointers = []; pointer_counter = 0;
+		pointer_counter = 0;
 		declaredVars = [];
+		onRetPre = null; onRetPost = null;
 	}
 
 	public function getConstant(c:Dynamic) {
-		if(program.constant_stack.contains(c)) return program.constant_stack.indexOf(c);
-		program.constant_stack.push(c);
-		return program.constant_stack.length-1;
+		var index = program.constant_stack.indexOf(c);
+		if(index!=-1) return index;
+		return program.constant_stack.push(c)-1;
 	}
 
 	public function pushConstant(c:Dynamic) {
@@ -47,7 +48,10 @@ class Compiler {
 	public var depth:Int = 0;
 
 	public function getVar(name:String):Dynamic {
-		for (varnames in program.varnames_stack) {
+		var length = program.varnames_stack.length;
+		for (i in 0...length) {
+			var d = length - i - 1;
+			var varnames = program.varnames_stack[d];
 			var idx:Int = varnames.indexOf(name);
 			if (idx != -1) return idx;
 		}
@@ -55,13 +59,13 @@ class Compiler {
 	}
 
 	public function getVarInDepth(name:String, ?depth:Int):Dynamic {
+		trace("Getting var " + name + " in depth " + depth);
 		if (program.varnames_stack[depth] == null)
 			program.varnames_stack[depth] = [];
 
 		var idx = program.varnames_stack[depth].indexOf(name);
 		if(idx == -1) {
-			program.varnames_stack[depth].push(name);
-			return program.varnames_stack[depth].length-1;
+			return program.varnames_stack[depth].push(name)-1;
 		}
 		return idx;
 	}
@@ -69,7 +73,9 @@ class Compiler {
 	public function pushVar(vname:String) {
 		var index:Int = -1;
 		var depth:Int = this.depth;
-		for (d in 0...program.varnames_stack.length) {
+		var length = program.varnames_stack.length;
+		for (d in 0...length) {
+			var d = length - d - 1;
 			if(program.varnames_stack[d] == null) program.varnames_stack[d] = [];
 			var idx:Int = program.varnames_stack[d].indexOf(vname);
 			if (idx != -1) {index = idx; depth = d; break;}
@@ -80,23 +86,23 @@ class Compiler {
 		program.read_only_stack.push(depth);
 		program.read_only_stack.push(index);
 
+		trace("Pushed var " + vname + " to stack at index " + index + " in depth " + depth);
+
 		program.instructions.push(PUSHV_D);
 	}
 
 	public function getVarDepth(vname:String):Int {
 		var depth:Int = this.depth;
 		for (d => varnames in program.varnames_stack) {
+			if(program.varnames_stack[d] == null) program.varnames_stack[d] = [];
 			var idx:Int = varnames.indexOf(vname);
 			if (idx != -1) {depth = d; break;}
 		}
 		return depth;
 	}
 
-	public var pointers:Array<Pointer> = [];
-
 	public function pointer():Pointer {
 		var pointer = new Pointer(program.instructions.length, get_rom_len());
-		pointers.push(pointer);
 		return pointer;
 	}
 
@@ -105,7 +111,7 @@ class Compiler {
 		pointer.rp = get_rom_len();
 	}
 
-	public inline function get_rom_len():Int {
+	@:pure public inline function get_rom_len():Int {
 		var len:Int = program.read_only_stack.length;
 		for (rom in program.read_only_stack)
 			if (rom is Pointer) len++;
@@ -145,10 +151,18 @@ class Compiler {
 		compile_pointers();
 	}
 
+	function comment(s:String) {
+		program.instructions.push(COMMENT);
+		program.read_only_stack.push(getConstant(s));
+	}
+
+	private var onRetPre:Void->Void = null;
+	private var onRetPost:Void->Void = null;
+
 	private var declaredVars:Array<String> = [];
 
 	private function _compile(expr:Expr) {
-		trace("Compiling " + expr.expr);
+		//trace("Compiling " + expr.expr);
 		switch (expr.expr) {
 			case EConst(c):
 				switch (c) {
@@ -166,7 +180,6 @@ class Compiler {
 						pushConstant(r);
 						pushConstant(o);
 						program.read_only_stack.push(2);
-						program.instructions.push(ARRAY_STACK);
 						program.instructions.push(NEW);
 					}
 				}
@@ -228,6 +241,7 @@ class Compiler {
 			case ENew(path, expr):
 				var pack = HelperUtils.getPackFromTypePath(path.path);
 				if(declaredVars.contains(pack)) {
+					throw "Cannot create instance of " + pack + " because its not implemented";
 					// Push from vars
 				} else {
 					var cls = Type.resolveClass(pack);
@@ -408,10 +422,12 @@ class Compiler {
 				_compile(e);
 				// program.instructions.push(THROW);
 			case EReturn(e):
+				if(onRetPre != null) onRetPre();
 				if(e != null)
 					_compile(e);
 				else
 					program.instructions.push(PUSH_NULL);
+				if(onRetPost != null) onRetPost();
 				program.instructions.push(RET);
 			case EFunction(kind, f):
 				// Hacky method to make it skip the function, todo make it place it at the end of the program
@@ -422,9 +438,24 @@ class Compiler {
 				var func = f.expr;
 				var args = f.args;
 
+				var name:String = null;
+
 				var func_s = pointer();
 
-				program.instructions.push(DEPTH_INC); depth++;
+				var old = declaredVars.length;
+
+				depth++;
+
+				switch(kind) {
+					case FNamed(n, isInline):
+						name = n.string;
+						declaredVars.push(name);
+						program.function_pointers.set(name, func_s); // TODO: store min args
+					default:
+				}
+				//program.instructions.push(DEPTH_INC); depth++;
+
+				comment("########## Start of function");
 
 				trace("Compiling function");
 
@@ -453,6 +484,7 @@ class Compiler {
 					var pushArgPointer = pointer();
 					var endPointer = pointer();
 					var arg = args[i];
+					comment("Checking setting argument " + arg.name.string);
 					if(arg.opt) {
 						program.instructions.push(LENGTH); // Stack: [args, args.length]
 						pushConstant(i); // Stack: [args, args.length, i]
@@ -469,15 +501,24 @@ class Compiler {
 						program.instructions.push(JUMP);
 					}
 					pointer_update(pushArgPointer);
-					pushConstant(i);
-					program.instructions.push(ARRAY_GET); // Stack: [args, args[i]]
+					//pushConstant(i);
+					program.read_only_stack.push(i);
+					program.instructions.push(ARRAY_GET_KNOWN); // Stack: [args, args[i]]
 					pointer_update(endPointer);
 
-					getVarInDepth(arg.name.string, depth);
-					program.instructions.push(POP); // TODO: arguments
-					//program.read_only_stack.push(getVarInDepth(arg.name.string, depth));
-					program.instructions.push(SAVE_D);
+					//getVarInDepth(arg.name.string, depth);
+					//program.instructions.push(POP); // TODO: arguments
+					program.read_only_stack.push(depth);
+					program.read_only_stack.push(getVarInDepth(arg.name.string, depth));
+					program.instructions.add(SAVE_D);
+					declaredVars.push(arg.name.string);
 				}
+
+				comment("Running function");
+
+				//onRetPost = () -> {
+				//	program.instructions.push(DEPTH_DNC);
+				//}
 
 				// yea
 				// makes blocks not increase scope
@@ -490,8 +531,14 @@ class Compiler {
 						_compile(func);
 				}
 
-				program.instructions.push(DEPTH_DNC); depth--;
+				//program.instructions.push(DEPTH_DNC); depth--;
+				depth--;
+				program.instructions.push(PUSH_NULL);
 				program.instructions.push(RET);
+
+				declaredVars = declaredVars.slice(0, old);
+
+				comment("########## End of function");
 
 				pointer_update(skipFunc_p);
 
@@ -517,18 +564,15 @@ class Compiler {
 				*/
 				//var func_end_p = pointer();
 
-				switch(kind) {
-					case FArrow | FAnonymous:
-						program.read_only_stack.push(func_s);
-						program.instructions.push(PUSH); // make the function be on the stack
-					case FNamed(name, isInline):
-						program.read_only_stack.push(func_s);
-						program.instructions.push(PUSH);
-						program.read_only_stack.push(getVarInDepth(name.string, depth));
-						program.instructions.push(SAVE);
-						pushVar(name.string);
-						program.function_pointers.set(name.string, func_s); // TODO: store min args
+				program.read_only_stack.push(func_s);
+				program.instructions.push(PUSH);
+				if(name != null) {
+					program.read_only_stack.push(getVarInDepth(name, depth));
+					program.instructions.push(SAVE);
+					pushVar(name);
 				}
+
+				onRetPost = null;
 
 				trace("Compiled function");
 
@@ -553,6 +597,10 @@ class Compiler {
 					program.instructions.push(PUSH_NULL);
 				}
 				pointer_update(end_p);
+			case EArray(e1, _.expr=>EConst(CInt(v, _))):
+				_compile(e1); // arr
+				pushConstant(v);
+				program.instructions.push(ARRAY_GET_KNOWN);
 			case EArray(e1, e2):
 				_compile(e1); // arr
 				_compile(e2); // index
@@ -622,7 +670,7 @@ class Compiler {
 				program.read_only_stack.push(getVarDepth(varname));
 				program.read_only_stack.push(getVarInDepth(varname, program.read_only_stack[program.read_only_stack.length-1]));
 
-				program.instructions.push(SAVE_D);
+				program.instructions.add(SAVE_D);
 
 			case EBinop(BOpAssignOp(op), e1, e2):
 				throw "BinopAssignOp not implemented";
@@ -707,12 +755,14 @@ class Compiler {
 				}
 
 				if(isLocal) {
-					program.read_only_stack.push(localPointer);
 					for (a in args) {
 						_compile(a);
 					}
+					program.read_only_stack.push(localPointer);
 					program.read_only_stack.push(args.length);
+					program.instructions.push(DEPTH_INC);
 					program.instructions.push(LOCAL_CALL);
+					program.instructions.push(DEPTH_DNC);
 				} else {
 					_compile(e);
 					for (a in args) {
@@ -733,8 +783,8 @@ class Compiler {
 				}
 
 		}
-		trace(expr.expr);
-		trace(program.print());
+		//trace(expr.expr);
+		//trace(program.print());
 	}
 
 	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

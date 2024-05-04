@@ -36,8 +36,10 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var PUSH_NULL:OpCode; // 0 ROM SPACE: Pushes a null to stack
 	var PUSH_OBJECT:OpCode; // 0 ROM SPACE: Pushes a {} to stack
 
-	var ARRAY_GET:OpCode; // 2 ROM SPACE: Gets index ROM1 from stack[ROM2], pushing to stack
-	var ARRAY_SET:OpCode; // 2 ROM SPACE: Sets index ROM1 from stack[ROM2], popping it from stack
+	var ARRAY_GET:OpCode; // 0 ROM SPACE: Gets index stack[stacktop] from stack[stacktop], pushing to stack
+	var ARRAY_SET:OpCode; // 0 ROM SPACE: Sets index stack[stacktop-1] from stack[stacktop-2] with value stack[stacktop], popping it from stack
+	var ARRAY_GET_KNOWN:OpCode; // 1 ROM SPACE: Gets index ROM1 from stack[stacktop], pushing to stack
+	var ARRAY_SET_KNOWN:OpCode; // 1 ROM SPACE: Sets index ROM1 from stack[stacktop-1] with value stack[stacktop], popping it from stack
 	var ARRAY_STACK:OpCode; // 1 ROM SPACE: Creates a array from stack[stacktop] to stack[stacktop-ROM1], popping all values from stack
 
 	var ADD:OpCode; // 0 ROM SPACE: added last 2 variables in stack v1+v2, popping both of them and pushing the result to the stack
@@ -73,4 +75,9 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var STK_OFF:OpCode; // 1 ROM SPACE: gets stack[stacktop+ROM1], pushing it to stack
 
 	var LENGTH:OpCode; // 0 ROM SPACE: pushes the length of the last array in stack, pushing it to the stack
+
+
+
+
+	var COMMENT:OpCode; // 1 ROM SPACE: Adds a comment to the program
 }

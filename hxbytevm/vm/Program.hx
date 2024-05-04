@@ -5,8 +5,16 @@ import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
 
+@:forward
+abstract PrintingArray<T>(Array<T>) from Array<T> to Array<T> {
+
+	public function add(v:T) {
+		this.push(v);
+	}
+}
+
 class Program {
-	public var instructions:Array<OpCode>;
+	public var instructions:PrintingArray<OpCode>;
 	public var read_only_stack:Array<StackValue>;
 	public var constant_stack:Array<StackValue>;
 	public var varnames_stack:Array<Array<String>>;
@@ -48,6 +56,7 @@ class Program {
 			trace(i, print_opcode(ip), rp, dp);
 
 			switch (ip) {
+				case COMMENT: prints[4].push('COMMENT:   ${constant_stack[get_rom()]}');
 				case PUSH: prints[4].push('VAR:       ${get_rom()}');
 				case PUSHV | SAVE:
 					var v_id = get_rom();
@@ -56,7 +65,8 @@ class Program {
 					var d = get_rom();
 					var v_id = get_rom();
 					trace(varnames_stack[d], d, v_id);
-					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
+					if(varnames_stack[d] == null) prints[4].push('VAR_ID DEPTH ERROR D: $d, V_ID: $v_id');
+					else prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
 				case PUSHC:
 					var c_id = get_rom();
 					var const = constant_stack[c_id];
@@ -67,16 +77,26 @@ class Program {
 					var _rp = get_rom();
 					prints[4].push('IP: ${_ip}, RP: ${_rp}');
 				case FUNC:
-					var kind = get_rom();
-					var func = get_rom();
-					prints[4].push('K:  ${kind}, F:  ${func}');
+					//var kind = get_rom();
+					//var func = get_rom();
+					//prints[4].push('K:  ${kind}, F:  ${func}');
+					prints[4].push('FUNCTION');
 				case FIELD_GET | FIELD_SET: prints[4].push('NAME:  ${get_rom()}');
-				case ARRAY_GET | ARRAY_SET:
-					var array_i = get_rom();
-					var array_r = get_rom();
-					prints[4].push('A_ID:  ${array_i}, I_ID:  ${array_r}');
+				case ARRAY_GET | ARRAY_SET | ARRAY_GET_KNOWN | ARRAY_SET_KNOWN:
+					var known = ip == ARRAY_GET_KNOWN || ip == ARRAY_SET_KNOWN;
+					//var array_i = get_rom();
+					//var array_r = get_rom();
+					var array_i = known ? get_rom() : null;
+					var array_r = "<STACK>";
+					prints[4].push('A_ID:  ${array_r}, I_ID:  ${array_i}');
 				case ARRAY_STACK: prints[4].push('SIZE:      ${get_rom()}');
 				case STK_OFF: prints[4].push('OFFSET:  ${get_rom()}');
+				case CALL: prints[4].push('ARGS:  ${get_rom()}');
+				case LOCAL_CALL:
+					var length = get_rom();
+					var r = get_rom();
+					var i = get_rom();
+					prints[4].push('ARGS:  ${length}  IP: ${i}, RP: ${r}');
 				default: prints[4].push("-");
 			}
 		}
@@ -138,6 +158,8 @@ class Program {
 
 			case ARRAY_GET: "ARRAY_GET";
 			case ARRAY_SET: "ARRAY_SET";
+			case ARRAY_GET_KNOWN: "ARRAY_GET_KNOWN";
+			case ARRAY_SET_KNOWN: "ARRAY_SET_KNOWN";
 			case ARRAY_STACK: "ARRAY_STACK";
 
 			case ADD: "ADD";
@@ -172,6 +194,7 @@ class Program {
 			case STK_OFF: "STK_OFF";
 
 			case LENGTH: "LENGTH";
+			case COMMENT: "COMMENT";
 		}
 	}
 

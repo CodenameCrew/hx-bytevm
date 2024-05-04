@@ -19,11 +19,18 @@ class CompilerTest {
 	public static function run( e : Expr, name:String) {
 		Sys.println(Util.getTitle(name));
 		Sys.println("\n");
+		Sys.println(Util.getTitle(name + " AST"));
+		Sys.println("\n");
+		Sys.println(hxbytevm.printer.Printer.printExpr(e));
 		var compiler:Compiler = new Compiler();
 		compiler.compile(e);
 
 		var vm:HVM = new HVM();
 		Sys.println(compiler.program.print());
+
+		Sys.println(compiler.program.varnames_stack);
+		Sys.println(compiler.program.read_only_stack);
+		Sys.println(compiler.program.constant_stack);
 		vm.run(compiler.program);
 	}
 }

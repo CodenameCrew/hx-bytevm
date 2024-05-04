@@ -158,17 +158,15 @@ class Printer {
 		indentation--;
 	}
 
-	public function newline() {
-		return "\n" + getIndent();
-	}
-
 	public function getIndent() {
 		return StringTools.lpad("", "\t", indentation);
 	}
 
-	public function newlineIf(cond:Bool) {
-		if(cond) return (newline());
-		return "";
+	public static function isBlock(e:Expr):Bool {
+		return switch e.expr {
+			case EBlock(_): true;
+			default: false;
+		}
 	}
 
 	public function printConstant(c:Constant)
@@ -230,9 +228,9 @@ class Printer {
 		//	+ tabs : "");
 		add(orderAccess(field.cff_access).map(printAccess).join(" ") + " ");
 		add(switch (field.cff_kind) {
-			case CFKVar(t, eo): '${field.cff_name}' + opt(t, printComplexType, " : ") + opt(eo, printExpr, " = ");
-			case CFKProp(get, set, t, eo): 'var ${field.cff_name}(${get.string}, ${set.string})' + opt(t, printComplexType, " : ") + opt(eo, printExpr, " = ");
-			case CFKFun(func): 'function ${field.cff_name}' + printFunction(func);
+			case CFKVar(t, eo): '${field.cff_name.string}' + opt(t, printComplexType, " : ") + opt(eo, expr, " = ");
+			case CFKProp(get, set, t, eo): 'var ${field.cff_name.string}(${get.string}, ${set.string})' + opt(t, printComplexType, " : ") + opt(eo, expr, " = ");
+			case CFKFun(func): 'function ${field.cff_name.string}' + printFunction(func);
 		});
 
 		return s;
@@ -247,7 +245,7 @@ class Printer {
 	}
 
 	public function printFunctionArg(arg:FuncArg) {
-		return (arg.opt ? "?" : "") + arg.name + opt(arg.type, printComplexType, ":") + opt(arg.value, printExpr, " = ");
+		return (arg.opt ? "?" : "") + arg.name.string + opt(arg.type, printComplexType, ":") + opt(arg.value, expr, " = ");
 	}
 
 	public function printFunction(func:Func, ?kind:FunctionKind) {
@@ -255,20 +253,22 @@ class Printer {
 			case [{type: null}]: kind == FArrow;
 			case _: false;
 		}
-		return /*(func.params == null ? "" : func.params.length > 0 ? "<" + func.params.map(printTypeParamDecl).join(", ") + ">" : "")
-			+ */(skipParentheses ? "" : "(")
+/*(func.params == null ? "" : func.params.length > 0 ? "<" + func.params.map(printTypeParamDecl).join(", ") + ">" : "")
+			+ */
+
+		return (skipParentheses ? "" : "(")
 			+ func.args.map(printFunctionArg).join(", ")
 			+ (skipParentheses ? "" : ")")
 			+ (kind == FArrow ? " ->" : "")
 			+ opt(func.ret, printComplexType, ":")
-			+ opt(func.expr, printExpr, " ");
+			+ opt(func.expr, expr, " ");
 	}
 
 	public function printTypePath(tp:TypePath) {
 		return (tp.pack.length > 0 ? tp.pack.join(".") + "." : "")
 			+ tp.name
-			+ (tp.sub != null ? '.${tp.sub}' : "")
-			+ (tp.params == null ? "" : tp.params.length > 0 ? "<" + tp.params.map(printTypeParam).join(", ") + ">" : "");
+			+ (tp.sub != null && tp.sub.length > 0 ? '.${tp.sub}' : "")
+			+ (tp.params != null && tp.params.length > 0 ? "<" + tp.params.map(printTypeParam).join(", ") + ">" : "");
 	}
 
 	public function printTypeParam(param:TypeParam)
@@ -304,8 +304,8 @@ class Printer {
 			case EBlock(exprs):
 				add("{");
 				indent();
-				if(exprs.length > 0) add("\n" + getIndent());
-				add(printExprs(exprs, ";\n" + getIndent()));
+					if(exprs.length > 0) add("\n" + getIndent());
+					add(printExprs(exprs, ";\n" + getIndent()));
 				outdent();
 				if(!s.endsWith("}")) add(";");
 				if(exprs.length > 0) add("\n" + getIndent());
@@ -349,9 +349,12 @@ class Printer {
 				add("if(");
 				add(expr(econd));
 				add(")");
+				if(!isBlock(eif)) add(" ");
 				add(expr(eif));
 				if(eelse != null) {
-					add("else ");
+					if(!isBlock(eif)) add(" ");
+					add("else");
+					if(!isBlock(eelse)) add(" ");
 					add(expr(eelse));
 				}
 			case EWhile(econd, e, flag):
@@ -374,6 +377,14 @@ class Printer {
 				add(")");
 				add(expr(e));
 			case EFunction(kind, func):
+				switch (kind) {
+					case FArrow: add("(");
+					case FAnonymous: add("function");
+					case FNamed(name, isInline):
+						if (isInline) add("inline ");
+						add("function ");
+						add(name.string);
+				}
 				add(printFunction(func, kind));
 			case EArrayDecl(exprs):
 				add("[");
@@ -481,7 +492,6 @@ class Printer {
 					add("case ");
 					add(printExprs(c.values, ", "));
 					add(":");
-					newline();
 					add(expr(c.expr));
 					add(";");
 				}
@@ -514,7 +524,7 @@ class Printer {
 		return v == null ? "" : (prefix + f(v));
 
 	public function printVar(v:Evar) {
-		var s = v.name.string + opt(v.type, printComplexType, ":") + opt(v.expr, printExpr, " = ");
+		var s = v.name.string + opt(v.type, printComplexType, ":") + opt(v.expr, expr, " = ");
 		return switch v.meta {
 			case null | []: s;
 			case meta: meta.map(printMetadata).join(" ") + " " + s;

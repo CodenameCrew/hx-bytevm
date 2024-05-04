@@ -93,13 +93,17 @@ class HVM {
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
 		switch (instructions[ip]) {
+			case COMMENT:
+				var comment = get_rom();
+				haxe.Log.trace(constants[comment]);
 			case PUSH:
 				stack.push(get_rom());
 			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx
 			case PUSHV_D:
-				var d = get_rom();
 				var v_id = get_rom();
+				var d = get_rom();
 
+				trace(_variables, d, v_id);
 				stack.push(_variables[d][v_id]);
 			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
@@ -181,13 +185,31 @@ class HVM {
 			case PUSH_NULL: stack.push(null);
 			case PUSH_OBJECT: stack.push({});
 			case ARRAY_GET:
-				var array_i = get_rom();
-				var array_r = get_rom();
+				var array_i = stack.top(0);
+				var array_r = stack.top(-1);
+				//var array_i = get_rom();
+				//var array_r = get_rom();
 				stack.push(stack.stack[array_r][array_i]);
 			case ARRAY_SET:
+				//var array_i = get_rom();
+				//var array_r = get_rom();
+				var val = stack.pop();
+				var array_i = stack.top(0);
+				var array_r = stack.top(-1);
+				stack.stack[array_r][array_i] = val;
+			case ARRAY_GET_KNOWN:
+				//var array_i = stack.top(0);
+				//var array_r = stack.top(-1);
+				var array_r = stack.top(0);
 				var array_i = get_rom();
-				var array_r = get_rom();
-				stack.stack[array_r][array_i] = stack.pop();
+				stack.push(stack.stack[array_r][array_i]);
+			case ARRAY_SET_KNOWN:
+				var val = stack.pop();
+				var array_r = stack.top(0);
+				var array_i = get_rom();
+				//var array_i = stack.top(0);
+				//var array_r = stack.top(-1);
+				stack.stack[array_r][array_i] = val;
 			case ARRAY_STACK:
 				var length = get_rom();
 				var array = new haxe.ds.Vector<Dynamic>(length);
