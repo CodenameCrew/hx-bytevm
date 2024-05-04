@@ -18,7 +18,7 @@ class Program {
 	}
 
 	public function print() {
-		var prints:Array<Array<String>> = [["IP"], ["RP"], ["CODE"], ["ROM"]];
+		var prints:Array<Array<String>> = [["IP"], ["RP"], ["D"], ["CODE"], ["ROM"]];
 		var printsSizes:Array<Int> = [0, 0, 0];
 
 		var dp:Int = 0;
@@ -30,7 +30,9 @@ class Program {
 
 		for (i => ip in instructions) {
 			prints[0].push('I: $i');
-			prints[2].push(print_opcode(ip));
+			prints[1].push('R: $rp');
+			prints[2].push('D: $dp');
+			prints[3].push(print_opcode(ip));
 
 			switch (ip) {
 				case DEPTH_INC: dp++;
@@ -39,33 +41,36 @@ class Program {
 			}
 
 			switch (ip) {
-				case PUSH: prints[3].push('VAR:       ${get_rom()}');
-				case PUSHV | SAVE | NEW:
+				case PUSH: prints[4].push('VAR:       ${get_rom()}');
+				case PUSHV | SAVE:
 					var v_id = get_rom();
-					prints[3].push('VAR_ID:    $v_id  ("${varnames_stack[dp][v_id]}")');
+					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[dp][v_id]}")');
+				case PUSHV_D | SAVE_D:
+					var d = get_rom();
+					var v_id = get_rom();
+					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
 				case PUSHC:
 					var c_id = get_rom();
 					var const = constant_stack[c_id];
 					var desc:String = '${const is String ? '"' : ''}$const${const is String ? '"' : ''}';
-					prints[3].push('CONST_ID:  $c_id  ($desc)');
+					prints[4].push('CONST_ID:  $c_id  ($desc)');
 				case JUMP | JUMP_COND | JUMP_N_COND:
-					var _rp = get_rom();
 					var _ip = get_rom();
-					prints[3].push('IP: ${_ip+1}, RP: ${_rp}');
+					var _rp = get_rom();
+					prints[4].push('IP: ${_ip}, RP: ${_rp}');
 				case FUNC:
 					var kind = get_rom();
 					var func = get_rom();
-					prints[3].push('K:  ${kind}, F:  ${func}');
-				case FIELD_GET | FIELD_SET: prints[3].push('NAME:  ${get_rom()}');
+					prints[4].push('K:  ${kind}, F:  ${func}');
+				case FIELD_GET | FIELD_SET: prints[4].push('NAME:  ${get_rom()}');
 				case ARRAY_GET | ARRAY_SET:
 					var array_i = get_rom();
 					var array_r = get_rom();
-					prints[3].push('A_ID:  ${array_i}, I_ID:  ${array_r}');
-				case ARRAY_STACK: prints[3].push('SIZE:      ${get_rom()}');
-				case STK_OFF: prints[3].push('OFFSET:  ${get_rom()}');
-				default: prints[3].push("-");
+					prints[4].push('A_ID:  ${array_i}, I_ID:  ${array_r}');
+				case ARRAY_STACK: prints[4].push('SIZE:      ${get_rom()}');
+				case STK_OFF: prints[4].push('OFFSET:  ${get_rom()}');
+				default: prints[4].push("-");
 			}
-			prints[1].push('R: $rp');
 		}
 
 		// Cleaner looking
@@ -80,10 +85,10 @@ class Program {
 				prints[i][p] += StringTools.lpad("", " ", (printsSizes[i] - prints[i][p].length));
 			}
 
-		var header:String = ' ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift() : ""}';
+		var header:String = ' ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].shift() : ""}';
 		var result:String = '${StringUtils.getTitle("BYTE CODE:", header.length)}\n$header\n${StringTools.lpad("", "-", header.length)}\n';
 		for (i in 0...instructions.length)
-			result += ' ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i].length > 0 ? prints[3][i] : ""} \n';
+			result += ' ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n';
 
 		return result;
 	}
@@ -91,11 +96,16 @@ class Program {
 	public function print_opcode(o:OpCode):String {
 		return switch (o) {
 			case PUSH: "PUSH";
+
 			case PUSHV: "PUSHV";
+			case PUSHV_D: "PUSHV_D";
 			case PUSHC: "PUSHC";
+
 			case POP: "POP";
 
 			case SAVE: "SAVE";
+			case SAVE_D: "SAVE_D";
+
 			case RET: "RET";
 
 			case DEPTH_INC: "DEPTH_INC";

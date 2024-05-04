@@ -36,4 +36,11 @@ class Stack {
 
 	public inline function top(?offset:Int = 0):Dynamic
 		return #if cpp untyped stack.__unsafe_get(stackTop-1+offset) #else stack[stackTop-1+offset] #end;
+
+	public inline function getShortVersion():Array<Dynamic>
+		return stackTop >= 0 ? stack.slice(0, stackTop) : [];
+
+	public function toString():String {
+		return "Stack([" + getShortVersion().join(", ") + "])";
+	}
 }

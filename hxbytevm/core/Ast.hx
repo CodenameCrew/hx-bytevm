@@ -140,11 +140,11 @@ enum TypeParam {
 }
 
 enum ComplexType {
-	CTPath( placed_type_path : PlacedTypePath );
+	CTPath( placed_type_path : TypePath );
 	CTFunction( type_hint_list : Array<ComplexType> , type_hint : ComplexType );
 	CTAnonymous( class_field : Array<ClassField> );
 	CTParent( type_hint : ComplexType );
-	CTExtend( placed_type_path : Array<PlacedTypePath> , class_field : Array<ClassField> );
+	CTExtend( placed_type_path : Array<TypePath> , class_field : Array<ClassField> );
 	CTOptional( type_hint : ComplexType );
 	CTNamed( placed_name : PlacedName , type_hint : ComplexType );
 	CTIntersection( type_hint_list : Array<ComplexType> );
@@ -159,10 +159,10 @@ typedef FuncArg = {
 }
 
 typedef Func = {
-	var params : Array<TypeParam>;
+	var ?params : Array<TypeParam>;
 	var args : Array<FuncArg> ;
 	var ?ret : ComplexType;
-	var ?expr : Expr;
+	var expr : Expr;
 }
 
 typedef PlacedName = {

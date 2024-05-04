@@ -14,4 +14,11 @@ class HelperUtils {
 		// TODO: params
 		return pack;
 	}
+
+	public inline static function getIdentFromExpr(e: Expr): String {
+		return switch (e.expr) {
+			case EConst(CIdent(s)): s;
+			default: null;
+		}
+	}
 }

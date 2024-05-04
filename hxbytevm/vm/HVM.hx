@@ -8,6 +8,8 @@ class HVM {
 	var stack:Stack = new Stack();
 	var depth:Int = 0;
 
+	var program:Program;
+
 	var instructions:Array<OpCode>;
 	var rom:Array<Dynamic>;
 
@@ -22,12 +24,14 @@ class HVM {
 
 	public var variables:VarAccess;
 
-	public function new() {}
+	public function new() {
+		variables = new VarAccess(this);
+	}
 
 	public function reset() {
 		ip = 0; rp = 0;
 		stack = new Stack();
-		depth = 0;
+		depth = 0; program = null;
 
 		_varnames = [[]];
 		_variables = [[]];
@@ -39,8 +43,10 @@ class HVM {
 		ret = null;
 	}
 
-	public function run(program:Program):Dynamic {
+	public function load(program:Program) {
 		reset();
+
+		this.program = program;
 
 		instructions = program.instructions;
 		rom = program.read_only_stack;
@@ -49,7 +55,27 @@ class HVM {
 		_varnames = program.varnames_stack;
 		_variables = [for (scopenames in _varnames) cast new haxe.ds.Vector<Dynamic>(scopenames.length)];
 
+		variables.set("trace", Reflect.makeVarArgs(function(args:Array<Dynamic>) {
+			var inf:haxe.PosInfos = {
+				fileName: "",
+				lineNumber: 0,
+				methodName: "", // TODO: get function name of function which called it,
+				className: "", // Use class name, if not available, use filename
+				customParams: []
+			}
+			var v = args.shift();
+			if (args.length > 0)
+				inf.customParams = args;
+			haxe.Log.trace(Std.string(v), inf);
+		}));
+		variables.loadDefaults();
+	}
+
+	public function run(?program:Program):Dynamic {
+		if (program != null) load(program);
+
 		while (ip <= instructions.length-1) {
+			// trace(ip, rp, program.print_opcode(instructions[ip]), stack, stack.stackTop);
 			instruction(instructions[ip]);
 			ip++;
 		}
@@ -67,30 +93,38 @@ class HVM {
 		switch (instructions[ip]) {
 			case PUSH:
 				stack.push(get_rom());
-			case PUSHV: stack.push(_variables[depth][get_rom()]);
+			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx
+			case PUSHV_D:
+				var d = get_rom();
+				var v_id = get_rom();
+
+				stack.push(_variables[d][v_id]);
 			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
-			case SAVE: _variables[depth][get_rom()] = stack.pop();
+			case SAVE:
+				_variables[depth][get_rom()] = stack.pop();
+			case SAVE_D:
+				var v_id = get_rom();
+				var d = get_rom();
+				_variables[d][v_id] = stack.pop();
 			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC: depth--;
 			case JUMP:
 				var r = get_rom();
 				var i = get_rom();
-				rp = r; ip = i;
+				rp = r; ip = i - 1;
 			case JUMP_COND:
 				var r = get_rom();
 				var i = get_rom();
-
 				if (stack.pop() == true) {
-					rp = r; ip = i;
+					rp = r; ip = i - 1;
 				}
 			case JUMP_N_COND:
 				var r = get_rom();
 				var i = get_rom();
-
 				if (stack.pop() == false) {
-					rp = r; ip = i;
+					rp = r; ip = i - 1;
 				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
 				var kind:FunctionKind = cast get_rom();
@@ -98,7 +132,6 @@ class HVM {
 			case CALL:
 				var args = stack.pop();
 				var func = stack.pop();
-
 				if(func == null) throw "Cannot call null";
 				if(!UnsafeReflect.isFunction(func))
 					throw "Cannot call non function";

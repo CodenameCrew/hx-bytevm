@@ -41,10 +41,12 @@ class VarAccess {
 		this.parent = parent;
 
 	public inline function set(key:String, value:Dynamic) {
-		if (usedefaults) defaults.set(key, value);
-		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
-			if (varnames.contains(key))
-				parent._variables[i][varnames.indexOf(key)] = value;
+		if (usedefaults) {defaults.set(key, value); return;}
+		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames)) {
+			var index:Int = varnames.indexOf(key);
+			if (index != -1) parent._variables[i][index] = value;
+		}
+
 	}
 
 	public inline function get(key:String):Dynamic {

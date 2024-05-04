@@ -6,21 +6,29 @@ import hxbytevm.utils.RuntimeUtils;
 import hxbytevm.core.Ast;
 import hxbytevm.vm.Program;
 
-class Label {
-	public var name:String;
-	public var pos:Int;
+class Pointer {
+	public var ip:Int;
+	public var rp:Int;
 
-	public function new(name:String, ?pos:Int = -1) {
-		this.name = name;
-		this.pos = pos;
+	public function new(ip:Int, rp:Int) {
+		this.ip = ip;
+		this.rp = rp;
+	}
+
+	public function toString():String {
+		return '<POINTER IP: $ip, RP: $rp>';
 	}
 }
 
 class Compilier {
 	public var program(default, null):Program;
 
-	public function new() {
-		program = Program.createEmpty();
+	public function new() {}
+
+	public function reset() {
+		program = Program.createEmpty(); depth = 0;
+		pointers = []; pointer_counter = 0;
+		declaredVars = [];
 	}
 
 	public function getConstant(c:Dynamic) {
@@ -38,81 +46,102 @@ class Compilier {
 	public var depth:Int = 0;
 
 	public function getVar(name:String):Dynamic {
+		for (varnames in program.varnames_stack) {
+			var idx:Int = varnames.indexOf(name);
+			if (idx != -1) return idx;
+		}
+		return -1;
+	}
+
+	public function getVarInDepth(name:String, ?depth:Int):Dynamic {
 		if (program.varnames_stack[depth] == null)
 			program.varnames_stack[depth] = [];
 
 		var idx = program.varnames_stack[depth].indexOf(name);
 		if(idx == -1) {
 			program.varnames_stack[depth].push(name);
-			return program.varnames_stack.length-1;
+			return program.varnames_stack[depth].length-1;
 		}
 		return idx;
 	}
 
-	private var labels:Array<Map<String, Label>> = [];
-	private var label_pos:Array<Int> = [];
+	public function pushVar(vname:String) {
+		var index:Int = -1;
+		var depth:Int = this.depth;
+		for (d => varnames in program.varnames_stack) {
+			var idx:Int = varnames.indexOf(vname);
+			if (idx != -1) {index = idx; depth = d; break;}
+		}
 
-	private function pushLabelBlock() {
-		label_pos.push(program.read_only_stack.length);
-		labels.push(new Map());
+		if(index == -1) index = getVarInDepth(vname, depth);
+
+		program.read_only_stack.push(depth);
+		program.read_only_stack.push(index);
+
+		program.instructions.push(PUSHV_D);
 	}
 
-	private function popLabelBlock() {
-		fixLabels(label_pos.pop());
+	public function getVarDepth(vname:String):Int {
+		var depth:Int = this.depth;
+		for (d => varnames in program.varnames_stack) {
+			var idx:Int = varnames.indexOf(vname);
+			if (idx != -1) {depth = d; break;}
+		}
+		return depth;
 	}
 
-	public function setLabel(name:String, index:Int = -1) {
-		var label = new Label(name, index);
-		labels[labels.length - 1].set(name, label);
-		return label;
+	public var pointers:Array<Pointer> = [];
+
+	public function pointer():Pointer {
+		var pointer = new Pointer(program.instructions.length, get_rom_len());
+		pointers.push(pointer);
+		return pointer;
 	}
 
-	var label_counter(default, null):Int = 0;
-	public function getUniqueId():String {
-		return "__LBL_" + label_counter++;
+	public function pointer_update(pointer:Pointer) {
+		pointer.ip = program.instructions.length;
+		pointer.rp = get_rom_len();
 	}
 
-	public function fixLabels(after:Int = 0) {
-		for(i in after...program.read_only_stack.length) {
-			var v = program.read_only_stack[i];
-			if(Std.isOfType(v, Label)) {
-				var l:Label = cast v;
-				var idx = labels[labels.length - 1].get(l.name);
-				if(idx == null) {
-					throw "Label " + l.name + " not found";
-				}
-				program.read_only_stack[i] = idx;
+	public inline function get_rom_len():Int {
+		var len:Int = program.read_only_stack.length;
+		for (rom in program.read_only_stack)
+			if (rom is Pointer) len++;
+		return len;
+	}
+
+	public function compile_pointers() {
+		var i:Int = 0;
+		while (i < program.read_only_stack.length) {
+			var rom = program.read_only_stack[i];
+			if (rom is Pointer) {
+				var ip:Int = rom.ip;
+				var rp:Int = rom.rp;
+
+				program.read_only_stack[i] = ip;
+				program.read_only_stack.insert(i+1, rp);
+				i++;
 			}
+			i++;
 		}
 	}
 
-	// TODO: we need a utils class
-	public function getIdentFromExpr(e: Expr): String {
-		switch (e.expr) {
-			case EConst(c):
-				return switch (c) {
-					case CIdent(s): s;
-					default: null;
-				}
-			default:
-		}
-		return null;
+	var pointer_counter(default, null):Int = 0;
+	public inline function getUniqueId():Int {
+		return pointer_counter++;
 	}
 
 	public function compile(expr:Expr):Void {
+		reset();
+
 		switch (expr.expr) {
-			case EBlock(exprs):
-				for (e in exprs) { // to prevent depth increase
-					_compile(e);
-				}
-			default:
-				_compile(expr);
+			case EBlock(exprs): for (e in exprs) _compile(e);
+			default: _compile(expr);
 		}
 		program.instructions.push(RET);
-	}
 
-	private var continueBreakStack:Array<Int> = [];
-	private var continueBreakStackLabel:Array<Label> = [];
+		compile_pointers();
+	}
 
 	private var declaredVars:Array<String> = [];
 
@@ -123,7 +152,10 @@ class Compilier {
 					case CInt(v, suffix): pushConstant(v);
 					case CFloat(v, suffix): pushConstant(v);
 					case CString(v, _): pushConstant(v);
-					case CIdent(v): throw "Identifier not implemented";
+					case CIdent("null"): program.instructions.push(PUSH_NULL);
+					case CIdent("true"): program.instructions.push(PUSH_TRUE);
+					case CIdent("false"): program.instructions.push(PUSH_FALSE);
+					case CIdent(v): pushVar(v);
 					case CRegexp(r, o): {
 						pushConstant(EReg);
 						program.instructions.push(PUSH);
@@ -138,9 +170,11 @@ class Compilier {
 			case EBlock(exprs):
 				var old = declaredVars.length;
 				program.instructions.push(DEPTH_INC);
+				depth++;
 				for (e in exprs) {
 					_compile(e);
 				}
+				depth--;
 				program.instructions.push(DEPTH_DNC);
 				declaredVars = declaredVars.slice(0, old);
 			case ETry(e, catches):
@@ -152,7 +186,7 @@ class Compilier {
 				_compile(e);
 				program.instructions.push(DEPTH_DNC);
 				for (c in catches) {
-					var caseLabel = setLabel(getUniqueId());
+					var caseLabel = pointer(getUniqueId());
 					program.read_only_stack.push(caseLabel);
 					program.instructions.push(JUMP_N_COND);
 					_compile(c.expr);
@@ -213,7 +247,7 @@ class Compilier {
 				_compile(e);
 				program.instructions.push(DEPTH_DNC);
 				for (c in cases) {
-					var caseLabel = setLabel(getUniqueId());
+					var caseLabel = pointer(getUniqueId());
 					program.read_only_stack.push(caseLabel);
 					program.instructions.push(JUMP_N_COND);
 					_compile(c.expr);
@@ -221,7 +255,7 @@ class Compilier {
 					program.instructions.push(JUMP);
 				}
 				if (edef != null) {
-					program.read_only_stack.push(setLabel(getUniqueId()));
+					program.read_only_stack.push(pointer(getUniqueId()));
 					_compile(edef);
 					program.read_only_stack.push(caseLabel);
 					program.instructions.push(JUMP);
@@ -237,46 +271,59 @@ class Compilier {
 					declaredVars.push(v.name.string);
 					_compile(v.expr);
 					if(depth == 0) {
-						program.read_only_stack.push(getVar(v.name.string));
+						program.read_only_stack.push(getVarInDepth(v.name.string, depth));
 						program.instructions.push(SAVE);
 					}
 				}
 			case EIf(econd, eif, eelse) | ETernary(econd, eif, eelse):
-				pushLabelBlock();
-					var endLabel = setLabel(getUniqueId());
-					var a1Label = setLabel(getUniqueId());
-					_compile(econd);
-					program.read_only_stack.push(a1Label);
-					program.instructions.push(JUMP_N_COND); // jump to label a1 if econd is false
-					_compile(eif);
-					if(eelse != null) {
-						program.read_only_stack.push(endLabel);
-						program.instructions.push(JUMP); // jump to label END
-					}
-					// label A1
-					a1Label.pos = program.instructions.length;
-					if (eelse != null) {
-						_compile(eelse);
-					}
-					endLabel.pos = program.instructions.length;
-				popLabelBlock();
-				// label END
+				var end_p = pointer();
+				var a1_p = pointer();
+				_compile(econd);
+				program.read_only_stack.push(a1_p);
+				program.instructions.push(JUMP_N_COND); // jump to label a1 if econd is false
+				_compile(eif);
+				if(eelse != null) {
+					program.read_only_stack.push(end_p);
+					program.instructions.push(JUMP); // jump to pointer END
+				}
+				// pointer A1
+				pointer_update(a1_p);
+				if (eelse != null) {
+					_compile(eelse);
+				}
+				pointer_update(end_p);
+				// pointer END
 			case EWhile(econd, e, flag):
 				switch (flag) {
 					case WFNormalWhile:
-						var r = program.instructions.length;
 						// label START
+						var start_p = pointer();
+						var end_p = pointer();
+						pointer_update(start_p); // test
 						_compile(econd);
+						// TODO: helper function to make this cleaner
+						program.read_only_stack.push(end_p);
 						program.instructions.push(JUMP_N_COND); // to label END
 						_compile(e);
-						program.read_only_stack.push(r);
+						program.read_only_stack.push(start_p);
 						program.instructions.push(JUMP); // to label START
-						// label END
+
+						pointer_update(end_p);
+						// lemme test something
+						// start_p.rp -= 2; //this shouldnt even be needed it should be fully automatic
+						// yea but idk why the rp pointer is off in the push_D func, its where the jump is
+						// remember its 2 arrays with 2 different indexes
+						// it looks correct based on the printer
+						// the printer is accurute
+						// PUSHC takes 1 and SAVE takes 1 so its at 2
+						// yea just like look tho, the rp should be 2 and thats where it goes, its just wrong for some reason
+						trace(start_p); // hmmmmmm discrod
+						trace(end_p);// nope its off again
 					case WFDoWhile:
-						var r = program.instructions.length;
+						var start = pointer();
 						_compile(e);
 						_compile(econd);
-						program.read_only_stack.push(r);
+						program.read_only_stack.push(start);
 						program.instructions.push(JUMP_COND);
 				}
 			case EFor(iter, expr):
@@ -312,9 +359,8 @@ class Compilier {
 				_compile(mk(EField(iter, "hasNext", EFNormal)));
 				_compile(mk(EField(iter, "next", EFNormal)));
 
-				pushLabelBlock();
-				continueBreakStack.push(program.instructions.length); // marks the start of the loop
-				continueBreakStackLabel.push(setLabel(getUniqueId()));
+				// continueBreakStack.push(program.instructions.length); // marks the start of the loop
+				// continueBreakStackLabel.push(pointer());
 				program.read_only_stack.push(-1); // hasNext
 				program.instructions.push(STK_OFF);
 				program.instructions.push(PUSH_ARRAY);
@@ -350,25 +396,24 @@ class Compilier {
 				_compile(expr);
 				_compile(mk(EContinue));
 
-				continueBreakStackLabel[continueBreakStackLabel.length - 1].pos = program.instructions.length;
+				// continueBreakStackLabel[continueBreakStackLabel.length - 1].pos = program.instructions.length;
 
 				program.instructions.push(POP); // Pop the next function
 				program.instructions.push(POP); // Pop the hasNext function
 
 				program.instructions.push(DEPTH_DNC);
 
-				continueBreakStack.pop();
-				continueBreakStackLabel.pop();
-				popLabelBlock();
+				// continueBreakStack.pop();
+				// continueBreakStackLabel.pop();
 			case EBreak:
-				program.read_only_stack.push(continueBreakStackLabel[continueBreakStackLabel.length - 1]);
+				// program.read_only_stack.push(continueBreakStackLabel[continueBreakStackLabel.length - 1]);
 				program.instructions.push(JUMP);
 			case EContinue:
-				program.read_only_stack.push(continueBreakStack[continueBreakStack.length - 1]);
+				// program.read_only_stack.push(continueBreakStack[continueBreakStack.length - 1]);
 				program.instructions.push(JUMP_COND);
 			case EThrow(e):
 				_compile(e);
-				program.instructions.push(THROW);
+				// program.instructions.push(THROW);
 			case EReturn(e):
 				if(e != null)
 					_compile(e);
@@ -387,27 +432,25 @@ class Compilier {
 				}
 			case EField(e, field, safe):
 				var isSafe = safe == EFSafe;
-				pushLabelBlock();
-					var endLabel = setLabel(getUniqueId());
-					var nullLabel = setLabel(getUniqueId());
+					var end_p = pointer();
+					var null_p = pointer();
 					_compile(e);
 					if(isSafe) {
 						program.instructions.push(DUP);
 						program.instructions.push(PUSH_NULL);
 						program.instructions.push(EQ);
-						program.read_only_stack.push(nullLabel);
+						program.read_only_stack.push(null_p);
 						program.instructions.push(JUMP_COND);
 					}
 					pushConstant(field);
 					program.instructions.push(FIELD_GET);
 					if(isSafe) {
-						program.read_only_stack.push(endLabel);
+						program.read_only_stack.push(end_p);
 						program.instructions.push(JUMP_COND);
-						nullLabel.pos = program.instructions.length;
+						pointer_update(null_p);
 						program.instructions.push(PUSH_NULL);
 					}
-					endLabel.pos = program.instructions.length;
-				popLabelBlock();
+					pointer_update(end_p);
 			case EArray(e1, e2):
 				_compile(e1); // arr
 				_compile(e2); // index
@@ -429,14 +472,12 @@ class Compilier {
 				}
 				stack.push(check);
 				*/
-				pushLabelBlock();
-					var endLabel = setLabel(getUniqueId());
-					_compile(e1); // 1
-					program.read_only_stack.push(endLabel);
-					program.instructions.push(JUMP_N_COND); // 0 // to at the of this
-					_compile(e2); // 1
-					endLabel.pos = program.instructions.length;
-				popLabelBlock();
+				var end_p = pointer();
+				_compile(e1); // 1
+				program.read_only_stack.push(end_p);
+				program.instructions.push(JUMP_N_COND); // 0 // to at the of this
+				_compile(e2); // 1
+				pointer_update(end_p);
 			case EBinop(BOpBoolOr, e1, e2):
 				/*
 				e1;
@@ -448,14 +489,12 @@ class Compilier {
 				stack.push(check);
 				*/
 
-				pushLabelBlock();
-					var endLabel = setLabel(getUniqueId());
-					_compile(e1); // 1
-					program.read_only_stack.push(endLabel);
-					program.instructions.push(JUMP_COND); // 0 // to at the of this
-					_compile(e2); // 1
-					endLabel.pos = program.instructions.length;
-				popLabelBlock();
+				var end_p = pointer();
+				_compile(e1); // 1
+				program.read_only_stack.push(end_p);
+				program.instructions.push(JUMP_COND); // 0 // to at the of this
+				_compile(e2); // 1
+				pointer_update(end_p);
 			case EBinop(BOpNullCoal, e1, e2):
 				/*
 				e1;
@@ -466,18 +505,23 @@ class Compilier {
 				}
 				stack.push(check);
 				*/
-				pushLabelBlock();
-					var endLabel = setLabel(getUniqueId());
-					_compile(e1); // 1
-					program.instructions.push(PUSH_NULL);
-					program.instructions.push(EQ);
-					program.read_only_stack.push(endLabel);
-					program.instructions.push(JUMP_N_COND); // 0 // to at the of this
-					_compile(e2); // 1
-					endLabel.pos = program.instructions.length;
-				popLabelBlock();
+				var end_p = pointer();
+				_compile(e1); // 1
+				program.instructions.push(PUSH_NULL);
+				program.instructions.push(EQ);
+				program.read_only_stack.push(end_p);
+				program.instructions.push(JUMP_N_COND); // 0 // to at the of this
+				_compile(e2); // 1
+				pointer_update(end_p);
 			case EBinop(BOpAssign, e1, e2):
-				throw "BinopAssignOp not implemented";
+				var varname:String = HelperUtils.getIdentFromExpr(e1);
+				_compile(e2);
+
+				program.read_only_stack.push(getVarDepth(varname));
+				program.read_only_stack.push(getVarInDepth(varname, program.read_only_stack[program.read_only_stack.length-1]));
+
+				program.instructions.push(SAVE_D);
+
 			case EBinop(BOpAssignOp(op), e1, e2):
 				throw "BinopAssignOp not implemented";
 				/*_compile(e1);
@@ -555,6 +599,11 @@ class Compilier {
 				program.read_only_stack.push(args.length);
 				program.instructions.push(ARRAY_STACK);
 				program.instructions.push(CALL);
+
+				// no, this is for the return value, yea, ik, but how else will code be able to use the return value
+				program.instructions.push(POP); // the return val gets pushed to stack by CALL
+				// yea that would work, or if its used as a argument
+				// hmmmmm we could check if anything gets assigned to the ecall, alr but for now i just wanna test if this is the issue
 			case EObjectDecl(fields):
 				program.instructions.push(PUSH_OBJECT);
 				for (f in fields) {
@@ -563,6 +612,9 @@ class Compilier {
 					program.instructions.push(FIELD_SET);
 				}
 		}
+
+		// trace(expr.expr);
+		// Sys.println(program.print());
 	}
 
 	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

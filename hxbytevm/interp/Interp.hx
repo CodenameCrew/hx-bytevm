@@ -130,18 +130,6 @@ class Interp {
 		return val;
 	}
 
-	public function getIdentFromExpr(e: Expr): String {
-		switch (e.expr) {
-			case EConst(c):
-				return switch (c) {
-					case CIdent(s): s;
-					default: null;
-				}
-			default:
-		}
-		return null;
-	}
-
 	public function getVarFromExpr(e: Expr): Option<DeclaredVar> {
 		switch (e.expr) {
 			case EConst(c):
@@ -172,12 +160,9 @@ class Interp {
 						if(s == EFSafe) {
 							if(v.value == null)
 								return null;
-							getter = () -> UnsafeReflect.getProperty(v.value, name);
-							setter = (val) -> UnsafeReflect.setProperty(v.value, name, val);
-						} else {
-							getter = () -> UnsafeReflect.getProperty(v.value, name);
-							setter = (val) -> UnsafeReflect.setProperty(v.value, name, val);
 						}
+						getter = () -> UnsafeReflect.getProperty(v.value, name);
+						setter = (val) -> UnsafeReflect.setProperty(v.value, name, val);
 					case None:
 						throw "Unknown variable " + name;
 				}
@@ -482,7 +467,7 @@ class Interp {
 							default:
 						}
 						if(valuevar == null) {
-							valuevar = {name: getIdentFromExpr(e1), value: null}
+							valuevar = {name: HelperUtils.getIdentFromExpr(e1), value: null}
 						}
 
 						if(valuevar.name == null || (hasKey && keyvar.name == null)) throw "Expected identifier";
