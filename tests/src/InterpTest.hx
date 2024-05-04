@@ -51,7 +51,8 @@ class InterpTest {
 	))]));
 
 	public static var FIBBONACCI_FUNCTION_RECURSIVE = {
-		mk(EFunction(
+		var block = [];
+		block.push(mk(EFunction(
 			FNamed({
 				string : "fib",
 				pos: {
@@ -74,11 +75,11 @@ class InterpTest {
 						},
 						opt : false,
 						meta: null,
-						type: CTPath({ path: TypePath({ pack: [], name: "Int", params: [], sub: "" }), pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
+						type: CTPath({ path: { pack: [], name: "Int", params: [], sub: "" }, pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
 						value: null
 					}
 				],
-				ret: CTPath({ path: TypePath({ pack: [], name: "Int", params: [], sub: "" }), pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
+				ret: CTPath({ path: { pack: [], name: "Int", params: [], sub: "" }, pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
 				expr: mk(EBlock([
 					mk(EIf(
 						mk(EBinop(BOpLte, mk(EConst(CIdent("n"))), mk(EConst(CInt(1))))), // if n <= 1
@@ -88,16 +89,33 @@ class InterpTest {
 					mk(EReturn(
 						mk(EBinop(
 							BOpAdd,
-							mk(ECall(EConst(CIdent("fib")), [
+							mk(ECall(mk(EConst(CIdent("fib"))), [
 								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(1)))))
 							])),
-							mk(ECall(EConst(CIdent("fib")), [
+							mk(ECall(mk(EConst(CIdent("fib"))), [
 								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(2)))))
 							]))
 						))
 					))
 				]))}
-		));
+		)));
+		block.push(mk(ECall(mk(EConst(CIdent("trace"))), [
+			mk(EBinop(BOpAdd,
+				mk(EConst(CString("fib(10) (Expected: 55) = ", SSingleQuotes))),
+				mk(ECall(mk(EConst(CIdent("fib"))), [
+					mk(EConst(CInt(10)))
+				]))
+			))
+		])));
+		block.push(mk(ECall(mk(EConst(CIdent("trace"))), [
+			mk(EBinop(BOpAdd,
+				mk(EConst(CString("fib(14) (Expected: 377) = ", SSingleQuotes))),
+				mk(ECall(mk(EConst(CIdent("fib"))), [
+					mk(EConst(CInt(14)))
+				]))
+			))
+		])));
+		mk(EBlock(block));
 	};
 
 	public static function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

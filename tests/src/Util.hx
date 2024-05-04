@@ -50,7 +50,7 @@ class Util {
 		return Math.fround(Value * Mult) / Mult;
 	}
 
-	public static function getTitle(title:String, ?dashsLen:Int = 46) {
+	public static function getTitle(title:String, ?dashsLen:Int = 70) {
 		var l = StringTools.lpad("", "-", Std.int((dashsLen - title.length - 2)/2));
 		return l + ' $title ' + l;
 	}

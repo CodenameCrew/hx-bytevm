@@ -307,18 +307,7 @@ class Compilier {
 						_compile(e);
 						program.read_only_stack.push(start_p);
 						program.instructions.push(JUMP); // to label START
-
 						pointer_update(end_p);
-						// lemme test something
-						// start_p.rp -= 2; //this shouldnt even be needed it should be fully automatic
-						// yea but idk why the rp pointer is off in the push_D func, its where the jump is
-						// remember its 2 arrays with 2 different indexes
-						// it looks correct based on the printer
-						// the printer is accurute
-						// PUSHC takes 1 and SAVE takes 1 so its at 2
-						// yea just like look tho, the rp should be 2 and thats where it goes, its just wrong for some reason
-						trace(start_p); // hmmmmmm discrod
-						trace(end_p);// nope its off again
 					case WFDoWhile:
 						var start = pointer();
 						_compile(e);
@@ -422,14 +411,58 @@ class Compilier {
 				program.instructions.push(RET);
 			case EFunction(name, f):
 				var func = f.expr;
-				switch (func.expr) {
+				var args = f.args;
+
+				program.instructions.push(DEPTH_INC);
+
+				// Increase scope
+				// so should we increase scope now then add the args based on name?
+				// or args from stack?
+
+				var func_s = pointer();
+
+				program.instructions.push(FUNC);
+
+				program.read_only_stack.push(name);
+				program.read_only_stack.push(f);
+
+				// yea
+				// makes blocks not increase scope
+				switch(func.expr) {
 					case EBlock(exprs):
 						for (e in exprs) {
 							_compile(e);
 						}
-					case _:
-						throw "Functions must be in blocks";
+					default:
+						_compile(func);
 				}
+
+				program.instructions.push(DEPTH_DNC);
+
+
+				/*PUSH LOCAL_FUNC_POINTER
+				PUSH_NULL
+				ARRAY_STACK (ROM: 1)
+				LOCAL_CALL (SAVES IP AND RP TO THE FUNCSTACK)
+
+
+				FUNC
+					PUSHC ("HELLO WORLD")
+					ARRAY_STACK (ROM: 1)
+					CALL // so then how would we have normal function returns?
+					// a new stack??????
+					// yea, lets just do it, then afterwards we can refine it
+					// huh it might be faster but ehhhhhh idk
+					RET // POPS THE IP AND RP FROM THE FUNCSTACK
+					// hmmmmmmm i gues
+					// so lemme make the LOCAL_CALL
+					// ill do the stuf in hvm to make this work
+
+				*/
+				var func_end_p = pointer();
+
+				program.function_pointers.set(name.string, [func_start_p, func_end_p]);
+
 			case EField(e, field, safe):
 				var isSafe = safe == EFSafe;
 					var end_p = pointer();
@@ -600,10 +633,8 @@ class Compilier {
 				program.instructions.push(ARRAY_STACK);
 				program.instructions.push(CALL);
 
-				// no, this is for the return value, yea, ik, but how else will code be able to use the return value
+				// TODO: check if anything uses return and do not pop it if it does
 				program.instructions.push(POP); // the return val gets pushed to stack by CALL
-				// yea that would work, or if its used as a argument
-				// hmmmmm we could check if anything gets assigned to the ecall, alr but for now i just wanna test if this is the issue
 			case EObjectDecl(fields):
 				program.instructions.push(PUSH_OBJECT);
 				for (f in fields) {
@@ -612,9 +643,6 @@ class Compilier {
 					program.instructions.push(FIELD_SET);
 				}
 		}
-
-		// trace(expr.expr);
-		// Sys.println(program.print());
 	}
 
 	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

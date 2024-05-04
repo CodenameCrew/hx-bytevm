@@ -1,5 +1,6 @@
 package hxbytevm.vm;
 
+import hxbytevm.compilier.Compilier.Pointer;
 import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
@@ -9,12 +10,14 @@ class Program {
 	public var read_only_stack:Array<StackValue>;
 	public var constant_stack:Array<StackValue>;
 	public var varnames_stack:Array<Array<String>>;
+	public var function_pointers:Map<String, Array<Pointer>> = [];
 
-	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>) {
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, function_pointers:Map<String, Array<Pointer>>) {
 		this.instructions = instructions;
 		this.read_only_stack = read_only_stack;
 		this.constant_stack = constant_stack;
 		this.varnames_stack = varnames_stack;
+		this.function_pointers = function_pointers;
 	}
 
 	public function print() {
@@ -165,6 +168,6 @@ class Program {
 	}
 
 	public static function createEmpty():Program {
-		return new Program([], [], [], []);
+		return new Program([], [], [], [], []);
 	}
 }
