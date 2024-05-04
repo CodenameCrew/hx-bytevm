@@ -135,6 +135,9 @@ class InterpTest {
 
 		Sys.println(Util.getTitle("WHILE LOOP TEST"));
 		run(WHILE_LOOP_EXPR);
+
+		Sys.println(Util.getTitle("FIBBONACCI TEST"));
+		run(FIBBONACCI_FUNCTION_RECURSIVE);
 	}
 
 	public static function run( e : Expr ) {

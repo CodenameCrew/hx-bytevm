@@ -396,6 +396,7 @@ class Interp {
 					if (a.opt) // Default args are treated as optional in the parser
 						minArgs++;
 				}
+
 				var funcName = switch (fk) {
 					case FAnonymous: "anonymous function";
 					case FNamed(name, _): "function named " + name.string;
@@ -441,7 +442,14 @@ class Interp {
 					return ret;
 				}
 
-				return RuntimeUtils.getNamedVarArgsFunction(funcName, f);
+				var pureFuncName = switch (fk) {
+					case FAnonymous: null;
+					case FNamed(name, _): name.string;
+					case FArrow: null;
+				};
+				var argsFunc =  RuntimeUtils.getNamedVarArgsFunction(funcName, f);
+				pushVar(pureFuncName, argsFunc);
+				return argsFunc;
 			case EBlock(exprs):
 				var ret = null;
 				depth++;
