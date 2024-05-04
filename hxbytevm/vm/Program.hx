@@ -95,10 +95,7 @@ class Program {
 				case STK_OFF: prints[4].push('OFFSET:  ${get_rom()}');
 				case CALL: prints[4].push('ARGS:  ${get_rom()}');
 				case LOCAL_CALL:
-					var length = get_rom();
-					var r = get_rom();
-					var i = get_rom();
-					prints[4].push('ARGS:  ${length}  IP: ${i}, RP: ${r}');
+					prints[4].push('TODO: LOCAL_CALL');
 				default: prints[4].push("-");
 			}
 		}

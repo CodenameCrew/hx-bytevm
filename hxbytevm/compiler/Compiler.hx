@@ -444,184 +444,10 @@ class Compiler {
 				if(onRetPost != null) onRetPost();
 				program.instructions.push(RET);
 			case EFunction(kind, f):
-				// Hacky method to make it skip the function, todo make it place it at the end of the program
-				var skipFunc_p = pointer();
-				program.read_only_stack.push(skipFunc_p);
-				program.instructions.push(JUMP);
 
 				var func = f.expr;
 				var args = f.args;
 
-				var name:String = null;
-
-				var func_s = pointer();
-				var func_return = pointer();
-
-				var old = declaredVars.length;
-
-				program.instructions.push(DEPTH_INC);
-				depth++;
-
-				switch(kind) {
-					case FNamed(n, isInline):
-						name = n.string;
-						declaredVars.push(name);
-						program.function_pointers.set(name, func_s); // TODO: store min args
-					default:
-				}
-
-				comment("########## Start of function");
-
-				trace("Compiling function");
-
-				// Stack: [args]
-
-				/*
-				for (i in 0...fargs.length) {
-					if(fargs[i].opt) {
-						if(i > args.length) {
-							if(fargs[i].value != null) {
-								_compile(fargs[i].value);
-							} else {
-								push(null);
-							}
-						} else {
-							push(args[i]);
-						}
-					} else {
-						push(args[i]);
-					}
-				*/
-
-
-				// TODO: maybe make a op code for this?
-				for(i in 0...args.length) {
-					var pushArgPointer = pointer();
-					var endPointer = pointer();
-					var arg = args[i];
-					comment("Checking setting argument " + arg.name.string);
-					if(arg.opt) {
-						program.instructions.push(LENGTH); // Stack: [args, args.length]
-						pushConstant(i); // Stack: [args, args.length, i]
-						program.instructions.push(LT); // Stack: [args, args.length < i]
-						program.read_only_stack.push(pushArgPointer);
-						program.instructions.push(JUMP_N_COND); // Stack: [args]
-						var value = arg.value;
-						if(value != null) { // make it so args[i] == null runs the default value (TODO: test if this happens)
-							_compile(value); // Stack: [args, value]
-						} else {
-							program.instructions.push(PUSH_NULL); // Stack: [args, null]
-						}
-						program.read_only_stack.push(endPointer);
-						program.instructions.push(JUMP);
-					}
-					pointer_update(pushArgPointer);
-					//pushConstant(i);
-					program.read_only_stack.push(i);
-					program.instructions.push(ARRAY_GET_KNOWN); // Stack: [args, args[i]]
-					pointer_update(endPointer);
-
-					//program.instructions.push(POP); // TODO: arguments
-					/*_compile(mk(EVars([
-						{
-							name : arg.name,
-							isFinal : false,
-							isStatic : false,
-							isPublic : false,
-							type : arg.type,
-							expr : UseStackValue.v, // wait i have idea for how, brbr, fuck its not a expression
-							meta : arg.meta
-						}
-					])));*/
-
-					/*
-					// theres code that compiles special based on the known vars// whats with the declared vars stuff
-					program.read_only_stack.push(depth);
-					program.read_only_stack.push(getVarInDepth(arg.name.string, depth));
-					program.instructions.add(SAVE_D);
-						// evars doesnt do it, since it uses expr
-					*/ // huh alr
-					program.read_only_stack.push(getVarInDepth(arg.name.string)); // have to return a int
-					program.instructions.push(PUSHV);
-					declaredVars.push(arg.name.string); // do we need this or does evars alr do it?
-				}
-
-				comment("Running function");
-
-				onRetPost = () -> {
-					program.read_only_stack.push(func_return);
-					program.instructions.push(JUMP);
-					// todo make it not compile the return for these
-					//program.instructions.push(DEPTH_DNC);
-				}
-
-				// yea
-				// makes blocks not increase scope
-				switch(func.expr) {
-					case EBlock(exprs):
-						for (e in exprs) {
-							_compile(e);
-						}
-					default: // ok now the depth inc is just off
-						_compile(func);
-				}
-
-				// local_call args are alos messed up
-
-				// if the function doesnt return anything, since its always a explicit return, but now i realize that
-					// arrow functions would eb broken
-				// why doesnt the expr still store then as efunctions?
-				// we shouldnt push the entire func and funckind to the stack, thats just bad really bad
-				// whats this for? alr
-				// yea but i mean at compile time
-				// cant we just give all these funcs a id like we did with vars
-
-				// Return value if nothing was returned
-				program.instructions.push(PUSH_NULL);
-				pointer_update(func_return);
-				program.instructions.push(DEPTH_DNC);
-				depth--;
-				program.instructions.push(RET);
-
-				declaredVars = declaredVars.slice(0, old);
-
-				comment("########## End of function");
-
-				pointer_update(skipFunc_p);
-
-
-				/*PUSH LOCAL_FUNC_POINTER
-				PUSH_NULL
-				ARRAY_STACK (ROM: 1)
-				LOCAL_CALL (SAVES IP AND RP TO THE FUNCSTACK)
-
-
-				FUNC
-					PUSHC ("HELLO WORLD")
-					ARRAY_STACK (ROM: 1)
-					CALL // so then how would we have normal function returns?
-					// a new stack??????
-					// yea, lets just do it, then afterwards we can refine it
-					// huh it might be faster but ehhhhhh idk
-					RET // POPS THE IP AND RP FROM THE FUNCSTACK
-					// hmmmmmmm i gues
-					// so lemme make the LOCAL_CALL
-					// ill do the stuf in hvm to make this work
-
-				*/
-				//var func_end_p = pointer();
-
-				program.read_only_stack.push(func_s);
-				program.instructions.push(PUSH);
-				if(name != null) {
-					program.read_only_stack.push(getVarInDepth(name, depth));
-					program.instructions.push(SAVE);
-					pushVar(name);
-				}
-
-				onRetPost = null;
-
-				trace("Compiled function");
 
 			case EField(e, field, safe):
 				var isSafe = safe == EFSafe;
@@ -790,14 +616,10 @@ class Compiler {
 				}
 			case ECall(e, args):
 				var isLocal = false;
-				var localPointer = null;
+				//var localPointer = null;
 				switch (e.expr) {
 					case EConst(CIdent(name)):
-						var func_s = program.function_pointers.get(name);
-						if (func_s != null) {
-							isLocal = true;
-							localPointer = func_s;
-						}
+
 					default:
 				}
 
@@ -805,11 +627,9 @@ class Compiler {
 					for (a in args) {
 						_compile(a);
 					}
-					program.read_only_stack.push(localPointer);
+					//program.read_only_stack.push(localPointer);
 					program.read_only_stack.push(args.length);
-					//program.instructions.push(DEPTH_INC);
-					program.instructions.push(LOCAL_CALL);
-					//program.instructions.push(DEPTH_DNC);
+					// local call here
 				} else {
 					_compile(e);
 					for (a in args) {
