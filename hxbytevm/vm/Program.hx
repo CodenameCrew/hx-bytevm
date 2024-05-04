@@ -1,0 +1,160 @@
+package hxbytevm.vm;
+
+import hxbytevm.utils.StringUtils;
+
+typedef StackValue = Dynamic;
+
+class Program {
+	public var instructions:Array<OpCode>;
+	public var read_only_stack:Array<StackValue>;
+	public var constant_stack:Array<StackValue>;
+	public var varnames_stack:Array<Array<String>>;
+
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>) {
+		this.instructions = instructions;
+		this.read_only_stack = read_only_stack;
+		this.constant_stack = constant_stack;
+		this.varnames_stack = varnames_stack;
+	}
+
+	public function print() {
+		var prints:Array<Array<String>> = [["IP"], ["RP"], ["CODE"], ["ROM"]];
+		var printsSizes:Array<Int> = [0, 0, 0];
+
+		var dp:Int = 0;
+		var rp:Int = 0;
+		inline function get_rom():Dynamic {
+			var ret = read_only_stack[rp];
+			rp++; return ret;
+		}
+
+		for (i => ip in instructions) {
+			prints[0].push('I: $i');
+			prints[2].push(print_opcode(ip));
+
+			switch (ip) {
+				case DEPTH_INC: dp++;
+				case DEPTH_DNC: dp--;
+				default:
+			}
+
+			switch (ip) {
+				case PUSH: prints[3].push('VAR:       ${get_rom()}');
+				case PUSHV | SAVE | NEW:
+					var v_id = get_rom();
+					prints[3].push('VAR_ID:    $v_id  ("${varnames_stack[dp][v_id]}")');
+				case PUSHC:
+					var c_id = get_rom();
+					var const = constant_stack[c_id];
+					var desc:String = '${const is String ? '"' : ''}$const${const is String ? '"' : ''}';
+					prints[3].push('CONST_ID:  $c_id  ($desc)');
+				case JUMP | JUMP_COND | JUMP_N_COND:
+					var _rp = get_rom();
+					var _ip = get_rom();
+					prints[3].push('IP: ${_ip+1}, RP: ${_rp}');
+				case FUNC:
+					var kind = get_rom();
+					var func = get_rom();
+					prints[3].push('K:  ${kind}, F:  ${func}');
+				case FIELD_GET | FIELD_SET: prints[3].push('NAME:  ${get_rom()}');
+				case ARRAY_GET | ARRAY_SET:
+					var array_i = get_rom();
+					var array_r = get_rom();
+					prints[3].push('A_ID:  ${array_i}, I_ID:  ${array_r}');
+				case ARRAY_STACK: prints[3].push('SIZE:      ${get_rom()}');
+				case STK_OFF: prints[3].push('OFFSET:  ${get_rom()}');
+				default: prints[3].push("-");
+			}
+			prints[1].push('R: $rp');
+		}
+
+		// Cleaner looking
+		for (i in 0...prints.length) {
+			var temparray:Array<String> = prints[i].copy();
+			temparray.sort((a, b) -> {return b.length-a.length;});
+			printsSizes[i] = temparray[0].length;
+		}
+
+		for (i in 0...prints.length)
+			for (p in 0...prints[i].length) {
+				prints[i][p] += StringTools.lpad("", " ", (printsSizes[i] - prints[i][p].length));
+			}
+
+		var header:String = ' ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift() : ""}';
+		var result:String = '${StringUtils.getTitle("BYTE CODE:", header.length)}\n$header\n${StringTools.lpad("", "-", header.length)}\n';
+		for (i in 0...instructions.length)
+			result += ' ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i].length > 0 ? prints[3][i] : ""} \n';
+
+		return result;
+	}
+
+	public function print_opcode(o:OpCode):String {
+		return switch (o) {
+			case PUSH: "PUSH";
+			case PUSHV: "PUSHV";
+			case PUSHC: "PUSHC";
+			case POP: "POP";
+
+			case SAVE: "SAVE";
+			case RET: "RET";
+
+			case DEPTH_INC: "DEPTH_INC";
+			case DEPTH_DNC: "DEPTH_DNC";
+
+			case JUMP: "JUMP";
+			case JUMP_COND: "JUMP_COND";
+			case JUMP_N_COND: "JUMP_N_COND";
+
+			case FUNC: "FUNC";
+			case CALL: "CALL";
+			case FIELD_SET: "FIELD_SET";
+			case FIELD_GET: "FIELD_GET";
+			case NEW: "NEW";
+
+			case PUSH_ARRAY: "PUSH_ARRAY";
+			case PUSH_TRUE: "PUSH_TRUE";
+			case PUSH_FALSE: "PUSH_FALSE";
+			case PUSH_NULL: "PUSH_NULL";
+			case PUSH_OBJECT: "PUSH_OBJECT";
+
+			case ARRAY_GET: "ARRAY_GET";
+			case ARRAY_SET: "ARRAY_SET";
+			case ARRAY_STACK: "ARRAY_STACK";
+
+			case ADD: "ADD";
+			case MULT: "MULT";
+			case DIV: "DIV";
+			case SUB: "SUB";
+			case EQ: "EQ";
+			case NEQ: "NEQ";
+			case GT: "GT";
+			case GTE: "GTE";
+			case LT: "LT";
+			case LTE: "LTE";
+			case AND: "AND";
+			case OR: "OR";
+			case XOR: "XOR";
+			case BAND: "BAND";
+			case BOR: "BOR";
+			case IS: "IS";
+
+			case SHL: "SHL";
+			case SHR: "SHR";
+			case USHR: "USHR";
+
+			case MOD: "MOD";
+
+			case INC: "INC";
+			case DNC: "DNC";
+			case NOT: "NOT";
+			case NEG: "NEG";
+			case NGBITS: "NGBITS";
+			case DUP: "DUP";
+			case STK_OFF: "STK_OFF";
+		}
+	}
+
+	public static function createEmpty():Program {
+		return new Program([], [], [], []);
+	}
+}

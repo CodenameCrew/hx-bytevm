@@ -18,44 +18,49 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 
 	var FUNC:OpCode = 11; // 2 ROM SPACE: Defines a function, ROM1 being FunctionKind and ROM2 being Func (refer to ExprDef in core/Ast.hx), expects a OBlock directly after
 	var CALL:OpCode = 12; // 0 ROM SPACE: Calls stack[stacktop-1] (a function), with a array of args from stack[stacktop], return is pushed to stacktop
-	var FIELD:OpCode = 13; // 1 ROM SPACE: Gets field ROM2 (a string) from stack[stacktop], pushing to stack
-	var NEW:OpCode = 14; // 2 ROM SPACE: Creates a instance from variables[ROM1] being a class with args from stack[stacktop], removing ROM2 from stack and pushing the new instance to stack
+	var FIELD_GET:OpCode = 13; // 1 ROM SPACE: Gets field ROM2 (a string) from stack[stacktop], pushing to stack
+	var FIELD_SET:OpCode = 14; // 1 ROM SPACE: Sets field ROM2 (a string) from stack[stacktop], popping it from stack
+	var NEW:OpCode = 15; // 0 ROM SPACE: Creates a instance from stack[stacktop] (args) being a class with args from stack[stacktop-1] (class), removing both from stack and pushing the new instance to stack
 
-	var PUSH_ARRAY:OpCode = 15; // 0 ROM SPACE: Pushes a empty array to stack
-	var PUSH_TRUE:OpCode = 16; // 0 ROM SPACE: Pushes a true to stack
-	var PUSH_FALSE:OpCode = 17; // 0 ROM SPACE: Pushes a false to stack
-	var PUSH_NULL:OpCode = 18; // 0 ROM SPACE: Pushes a null to stack
-	var PUSH_OBJECT:OpCode = 19; // 0 ROM SPACE: Pushes a {} to stack
+	var PUSH_ARRAY:OpCode = 16; // 0 ROM SPACE: Pushes a empty array to stack
+	var PUSH_TRUE:OpCode = 17; // 0 ROM SPACE: Pushes a true to stack
+	var PUSH_FALSE:OpCode = 18; // 0 ROM SPACE: Pushes a false to stack
+	var PUSH_NULL:OpCode = 19; // 0 ROM SPACE: Pushes a null to stack
+	var PUSH_OBJECT:OpCode = 20; // 0 ROM SPACE: Pushes a {} to stack
 
-	var ARRAY_GET:OpCode = 20; // 2 ROM SPACE: Gets index ROM1 from stack[ROM2], pushing to stack
-	var ARRAY_SET:OpCode = 21; // 2 ROM SPACE: Sets index ROM1 from stack[ROM2], popping it from stack
-	var ARRAY_STACK:OpCode = 22; // 1 ROM SPACE: Creates a array from stack[stacktop] to stack[stacktop-ROM1], popping all values from stack
+	var ARRAY_GET:OpCode = 21; // 2 ROM SPACE: Gets index ROM1 from stack[ROM2], pushing to stack
+	var ARRAY_SET:OpCode = 22; // 2 ROM SPACE: Sets index ROM1 from stack[ROM2], popping it from stack
+	var ARRAY_STACK:OpCode = 23; // 1 ROM SPACE: Creates a array from stack[stacktop] to stack[stacktop-ROM1], popping all values from stack
 
-	var ADD:OpCode = 23; // 0 ROM SPACE: added last 2 variables in stack v1+v2, popping both of them and pushing the result to the stack
-	var MULT:OpCode = 24; // 0 ROM SPACE: mults last 2 variables in stack v1*v2, popping both of them and pushing the result to the stack
-	var DIV:OpCode = 25; // 0 ROM SPACE: divs last 2 variables in stack v1/v2, popping both of them and pushing the result to the stack
-	var SUB:OpCode = 26; // 0 ROM SPACE: subs last 2 variables in stack v1-v2, popping both of them and pushing the result to the stack
-	var EQ:OpCode = 27; // 0 ROM SPACE: checks if the last 2 variables in stack are equal v1==v2, popping both of them and pushing the result to the stack
-	var NEQ:OpCode = 28; // 0 ROM SPACE: checks if the last 2 variables in stack are NOT equal v1!=v2, popping both of them and pushing the result to the stack
-	var GT:OpCode = 29; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is greater then v2, v1>v2, popping both of them and pushing the result to the stack
-	var GTE:OpCode = 30; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is greater and EQAUL then v2, v1>=v2, popping both of them and pushing the result to the stack
-	var LT:OpCode = 31; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is less then v2, v1<v2, popping both of them and pushing the result to the stack
-	var LTE:OpCode = 32; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is less and EQAUL then v2, v1<=v2, popping both of them and pushing the result to the stack
-	var AND:OpCode = 33; // 0 ROM SPACE: checks the last 2 variables, v1&v2, popping both of them and pushing the result to the stack
-	var OR:OpCode = 34; // 0 ROM SPACE: checks the last 2 variables, v1|v2, popping both of them and pushing the result to the stack
-	var XOR:OpCode = 35; // 0 ROM SPACE: uses the last 2 variables, v1^v2, popping both of them and pushing the result to the stack
-	var BAND:OpCode = 36; // 0 ROM SPACE: checks if the last 2 variables are both true v1&&v2, popping both of them and pushing the result to the stack
-	var BOR:OpCode = 37; // 0 ROM SPACE: checks if either the last 2 variables are true v1||v2, popping both of them and pushing the result to the stack
+	var ADD:OpCode = 24; // 0 ROM SPACE: added last 2 variables in stack v1+v2, popping both of them and pushing the result to the stack
+	var MULT:OpCode = 25; // 0 ROM SPACE: mults last 2 variables in stack v1*v2, popping both of them and pushing the result to the stack
+	var DIV:OpCode = 26; // 0 ROM SPACE: divs last 2 variables in stack v1/v2, popping both of them and pushing the result to the stack
+	var SUB:OpCode = 27; // 0 ROM SPACE: subs last 2 variables in stack v1-v2, popping both of them and pushing the result to the stack
+	var EQ:OpCode = 28; // 0 ROM SPACE: checks if the last 2 variables in stack are equal v1==v2, popping both of them and pushing the result to the stack
+	var NEQ:OpCode = 29; // 0 ROM SPACE: checks if the last 2 variables in stack are NOT equal v1!=v2, popping both of them and pushing the result to the stack
+	var GT:OpCode = 30; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is greater then v2, v1>v2, popping both of them and pushing the result to the stack
+	var GTE:OpCode = 31; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is greater and EQAUL then v2, v1>=v2, popping both of them and pushing the result to the stack
+	var LT:OpCode = 32; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is less then v2, v1<v2, popping both of them and pushing the result to the stack
+	var LTE:OpCode = 33; // 0 ROM SPACE: uses last 2 variables in stack to see if v1 is less and EQAUL then v2, v1<=v2, popping both of them and pushing the result to the stack
+	var AND:OpCode = 34; // 0 ROM SPACE: checks the last 2 variables, v1&v2, popping both of them and pushing the result to the stack
+	var OR:OpCode = 35; // 0 ROM SPACE: checks the last 2 variables, v1|v2, popping both of them and pushing the result to the stack
+	var XOR:OpCode = 36; // 0 ROM SPACE: uses the last 2 variables, v1^v2, popping both of them and pushing the result to the stack
+	var BAND:OpCode = 37; // 0 ROM SPACE: checks if the last 2 variables are both true v1&&v2, popping both of them and pushing the result to the stack
+	var BOR:OpCode = 38; // 0 ROM SPACE: checks if either the last 2 variables are true v1||v2, popping both of them and pushing the result to the stack
+	var IS:OpCode = 39; // 0 ROM SPACE: v1 == v2 (a type), v1 is v2, pushing the result to the stack
 
-	var SHL:OpCode = 38; // 0 ROM SPACE: uses the last 2 variables, v1<<v2, popping both of them and pushing the result to the stack
-	var SHR:OpCode = 39; // 0 ROM SPACE: uses the last 2 variables, v1>>v2, popping both of them and pushing the result to the stack
-	var USHR:OpCode = 40; // 0 ROM SPACE: uses the last 2 variables, v1>>>v2, popping both of them and pushing the result to the stack
+	var SHL:OpCode = 40; // 0 ROM SPACE: uses the last 2 variables, v1<<v2, popping both of them and pushing the result to the stack
+	var SHR:OpCode = 41; // 0 ROM SPACE: uses the last 2 variables, v1>>v2, popping both of them and pushing the result to the stack
+	var USHR:OpCode = 42; // 0 ROM SPACE: uses the last 2 variables, v1>>>v2, popping both of them and pushing the result to the stack
 
-	var MOD:OpCode = 41; // 0 ROM SPACE: uses the last 2 variables, v1%v2, popping both of them and pushing the result to the stack
+	var MOD:OpCode = 43; // 0 ROM SPACE: uses the last 2 variables, v1%v2, popping both of them and pushing the result to the stack
 
-	var INC:OpCode = 42; // 0 ROM SPACE: increments the last variable in the stack, v++, pushing the result to the stack
-	var DNC:OpCode = 43; // 0 ROM SPACE: decrements the last variable in the stack, v--, pushing the result to the stack
-	var NOT:OpCode = 44; // 0 ROM SPACE: checks if the last variable is false then returning true, !v, pushing the result to the stack
-	var NEG:OpCode = 45; // 0 ROM SPACE: negtives the last variable in stack, -v, pushing the result to the stack
-	var NGBITS:OpCode = 46; // 0 ROM SPACE: negtive bits the last variable in stack, ~v, pushing the result to the stack
+	var INC:OpCode = 44; // 0 ROM SPACE: increments the last variable in the stack, v++, pushing the result to the stack
+	var DNC:OpCode = 45; // 0 ROM SPACE: decrements the last variable in the stack, v--, pushing the result to the stack
+	var NOT:OpCode = 46; // 0 ROM SPACE: checks if the last variable is false then returning true, !v, pushing the result to the stack
+	var NEG:OpCode = 47; // 0 ROM SPACE: negtives the last variable in stack, -v, pushing the result to the stack
+	var NGBITS:OpCode = 48; // 0 ROM SPACE: negtive bits the last variable in stack, ~v, pushing the result to the stack
+
+	var DUP:OpCode = 49; // 0 ROM SPACE: duplicates stack[stacktop], pushing it to stack
+	var STK_OFF:OpCode = 50; // 1 ROM SPACE: gets stack[stacktop+ROM1], pushing it to stack
 }

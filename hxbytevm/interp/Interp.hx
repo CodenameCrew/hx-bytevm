@@ -1,5 +1,6 @@
 package hxbytevm.interp;
 
+import hxbytevm.utils.HelperUtils;
 import haxe.Constraints.IMap;
 import hxbytevm.utils.UnsafeReflect;
 import haxe.ds.Option;
@@ -360,11 +361,7 @@ class Interp {
 					throw "Cannot call non function";
 				return UnsafeReflect.callMethodUnsafe(null, e, args);
 			case ENew(path, args):
-				var pack = "";
-				for(p in path.path.pack) {
-					pack += p + ".";
-				}
-				pack += path.path.name;
+				var pack = HelperUtils.getPackFromTypePath(path.path);
 				var cls = switch(getVar(pack)) {
 					case Some(v): v.value;
 					case None: Type.resolveClass(pack);

@@ -24,7 +24,7 @@ package hxbytevm.printer;
 
 // Copyright included since a lot of it is from the haxe.macro.Printer class
 
-import hxbytevm.vm.HVM.Program;
+import hxbytevm.vm.Program;
 import hxbytevm.core.Ast;
 
 using StringTools;
@@ -143,9 +143,7 @@ class Printer {
 	}
 
 	public static function printCompiledProgram(program:Program):String {
-		var out = new StringBuf();
-		throw "Not implemented since program is still in development";
-		return out.toString();
+		return program.print();
 	}
 
 	public static function printExpr(e:Expr):String {

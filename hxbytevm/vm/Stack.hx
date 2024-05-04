@@ -34,6 +34,6 @@ class Stack {
 	public inline function grow()
 		#if cpp untyped stack.__SetSizeExact #else stack.resize #end (stack.length + (stack.length > MAX_STACK_GROW ? MAX_STACK_GROW : stack.length));
 
-	public inline function top():Dynamic
-		return #if cpp untyped stack.__unsafe_get(stackTop-1) #else stack[stackTop-1] #end;
+	public inline function top(?offset:Int = 0):Dynamic
+		return #if cpp untyped stack.__unsafe_get(stackTop-1+offset) #else stack[stackTop-1+offset] #end;
 }

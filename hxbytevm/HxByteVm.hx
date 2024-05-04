@@ -8,8 +8,7 @@ class HxByteVm {
 	private var _loaded : Bool;
 	private var _ast : Expr;
 
-	public function new() {
-	}
+	public function new() {}
 
 	#if sys
 	public function loadFile( path : String ) {

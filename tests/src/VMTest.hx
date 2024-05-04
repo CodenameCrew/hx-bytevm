@@ -1,42 +1,43 @@
 package;
 
+import hxbytevm.vm.Program;
 import hxbytevm.vm.HVM;
 
 class VMTest {
-	public static var PROGRAM_ADD:Program = {
-		intructions: [PUSHC, PUSHC, ADD, RET],
-		read_only_stack: [0, 1],
-		constant_stack: [2, 5],
-		varnames_stack: []
-	};
+	public static var PROGRAM_ADD:Program = new Program(
+		[PUSHC, PUSHC, ADD, RET],
+		[0, 1],
+		[2, 5],
+		[[]]
+	);
 
-	public static var PROGRAM_NEG:Program = {
-		intructions: [PUSHC, NEG, RET],
-		read_only_stack: [0],
-		constant_stack: [2],
-		varnames_stack: []
-	};
+	public static var PROGRAM_NEG:Program = new Program(
+		[PUSHC, NEG, RET],
+		[0],
+		[2],
+		[[]]
+	);
 
-	public static var PROGRAM_IF_ELSE:Program = {
-		intructions: [PUSHC, PUSHC, EQ, NOT, JUMP_COND, PUSH, JUMP, PUSH, RET],
-		read_only_stack: [0, 1, 7, 6, "YEAH :D", 8, 7, "NAH :("],
-		constant_stack: [2, 8],
-		varnames_stack: []
-	};
+	public static var PROGRAM_IF_ELSE:Program = new Program(
+		[PUSHC, PUSHC, EQ, NOT, JUMP_COND, PUSH, JUMP, PUSH, RET],
+		[0, 1, 7, 6, "YEAH :D", 8, 7, "NAH :("],
+		[2, 8],
+		[[]]
+	);
 
-	public static var PROGRAM_CALL:Program = {
-		intructions: [PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL],
-		read_only_stack: [function_test, 0, 2],
-		constant_stack: [2],
-		varnames_stack: []
-	};
+	public static var PROGRAM_CALL:Program = new Program(
+		[PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL],
+		[function_test, 0, 2],
+		[2],
+		[[]]
+	);
 
-	public static var PROGRAM_DO_WHILE:Program = {
-		intructions: [PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
-		read_only_stack: [0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
-		constant_stack: [0, 10, "DO WHILE LOOP (i):  "],
-		varnames_stack: ["i"]
-	};
+	public static var PROGRAM_DO_WHILE:Program = new Program(
+		[PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, ARRAY_STACK, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
+		[0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
+		[0, 10, "DO WHILE LOOP (i):  "],
+		[["i"]]
+	);
 
 	public static function main() {
 		Sys.println(Util.getTitle("HVM TESTING"));
@@ -58,8 +59,12 @@ class VMTest {
 		Sys.println(Util.getTitle("PROGRAM CALL"));
 		hvm.run(PROGRAM_CALL);
 
+		Sys.println("\n");
+
 		Sys.println(Util.getTitle("PROGRAM DO WHILE"));
 		hvm.run(PROGRAM_DO_WHILE);
+
+		Sys.println(PROGRAM_DO_WHILE.print());
 	}
 
 	public static function function_test(arg1:Int, arg2:Bool) {

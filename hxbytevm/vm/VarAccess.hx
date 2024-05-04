@@ -1,5 +1,7 @@
 package hxbytevm.vm;
 
+import hxbytevm.utils.ReverseIterator.ReverseArrayIterator;
+import hxbytevm.utils.ReverseIterator.ReverseArrayKeyValueIterator;
 import haxe.iterators.ArrayIterator;
 
 
@@ -40,23 +42,29 @@ class VarAccess {
 
 	public inline function set(key:String, value:Dynamic) {
 		if (usedefaults) defaults.set(key, value);
-		if (parent._varnames.contains(key))
-			parent._variables[parent._varnames.indexOf(key)] = value;
+		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
+			if (varnames.contains(key))
+				parent._variables[i][varnames.indexOf(key)] = value;
 	}
 
 	public inline function get(key:String):Dynamic {
-		if (parent._varnames.contains(key))
-			return parent._variables[parent._varnames.indexOf(key)];
+		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
+			if (varnames.contains(key))
+				return parent._variables[i][varnames.indexOf(key)];
 		return null;
 	}
 
 	public inline function exists(key:String):Bool {
-		var indx:Int = parent._varnames.indexOf(key);
-		return indx != -1 && (key == "null" ? true : parent._variables[indx] != null);
+		for (varnames in new ReverseArrayIterator(parent._varnames))
+			if (varnames.contains(key))
+				return true;
+		return false;
 	}
 
-	public inline function remove(key:String)
-		parent._variables[parent._varnames.indexOf(key)] = null;
+	public inline function remove(key:String) {
+		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
+			parent._variables[i][varnames.indexOf(key)] = null;
+	}
 
 	public inline function clear():Void {
 		parent._varnames.resize(0);
@@ -65,12 +73,16 @@ class VarAccess {
 
 	public inline function copy():Map<String, Dynamic> {
 		var map:Map<String, Dynamic> = [
-			for (i in 0...parent._variables.length)
-				parent._varnames[i] => parent._variables[i]
+			for (v => variables in new ReverseArrayKeyValueIterator(parent._variables))
+				for (i in 0...parent._variables[v].length)
+					parent._varnames[v][i] => variables[i]
 		];
 		return map;
 	}
 
+	// TODO: make it iterate in a flat method
+	// TODO: Port iterators
+	/*
 	public inline function iterator():ArrayIterator<Dynamic>
 		return parent._variables.iterator();
 
@@ -80,4 +92,5 @@ class VarAccess {
 	public function keyValueIterator() : VarAccessKeyValueIterator {
 		return new VarAccessKeyValueIterator(parent._varnames, parent._variables);
 	}
+	*/
 }

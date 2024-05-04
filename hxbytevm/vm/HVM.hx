@@ -4,26 +4,19 @@ import hxbytevm.core.Ast.Func;
 import hxbytevm.core.Ast.FunctionKind;
 import hxbytevm.utils.UnsafeReflect;
 
-typedef Program = {
-	var intructions:Array<OpCode>;
-	var read_only_stack:Array<Dynamic>;
-	var constant_stack:Array<Dynamic>;
-	var varnames_stack:Array<String>;
-}
-
 class HVM {
 	var stack:Stack = new Stack();
 	var depth:Int = 0;
 
-	var intructions:Array<OpCode>;
+	var instructions:Array<OpCode>;
 	var rom:Array<Dynamic>;
 
 	// pointers
 	var ip:Int = 0;
 	var rp:Int = 0;
 
-	@:noCompletion public var _varnames:Array<String> = [];
-	@:noCompletion public var _variables:Array<Dynamic> = [];
+	@:noCompletion public var _varnames:Array<Array<String>> = [[]];
+	@:noCompletion public var _variables:Array<Array<Dynamic>> = [[]];
 
 	@:noCompletion public var constants:Array<Dynamic> = [];
 
@@ -36,11 +29,11 @@ class HVM {
 		stack = new Stack();
 		depth = 0;
 
-		_varnames = [];
-		_variables = [];
+		_varnames = [[]];
+		_variables = [[]];
 		constants = [];
 
-		intructions = [];
+		instructions = [];
 		rom = [];
 
 		ret = null;
@@ -49,17 +42,16 @@ class HVM {
 	public function run(program:Program):Dynamic {
 		reset();
 
-		intructions = program.intructions;
+		instructions = program.instructions;
 		rom = program.read_only_stack;
 		constants = program.constant_stack;
 
 		_varnames = program.varnames_stack;
-		_variables = cast new haxe.ds.Vector<Dynamic>(_varnames.length);
+		_variables = [for (scopenames in _varnames) cast new haxe.ds.Vector<Dynamic>(scopenames.length)];
 
-		while (ip <= intructions.length-1) {
-			instruction(intructions[ip]);
+		while (ip <= instructions.length-1) {
+			instruction(instructions[ip]);
 			ip++;
-			// trace(intructions[ip-1], ip-1, rp-1, stack.stack, _variables);
 		}
 
 		return ret;
@@ -72,13 +64,13 @@ class HVM {
 
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
-		switch (intructions[ip]) {
+		switch (instructions[ip]) {
 			case PUSH:
 				stack.push(get_rom());
-			case PUSHV: stack.push(_variables[get_rom()]);
+			case PUSHV: stack.push(_variables[depth][get_rom()]);
 			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
-			case SAVE: _variables[get_rom()] = stack.pop();
+			case SAVE: _variables[depth][get_rom()] = stack.pop();
 			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC: depth--;
@@ -112,8 +104,15 @@ class HVM {
 					throw "Cannot call non function";
 				stack.push(UnsafeReflect.callMethodUnsafe(null, func, args));
 
-			case FIELD: stack.push(UnsafeReflect.field(stack.pop(), get_rom()));
-			case NEW: stack.push(Type.createInstance(_variables[get_rom()], stack.pop()));
+			case FIELD_GET: stack.push(UnsafeReflect.field(stack.pop(), get_rom()));
+			case FIELD_SET:
+				var val = stack.pop();
+				var obj = stack.pop();
+				UnsafeReflect.setField(obj, get_rom(), val); // TODO: DEBUG MODE, to prevent crash from obj being null
+			case NEW:
+				var args = stack.pop();
+				var cls = stack.pop();
+				stack.push(Type.createInstance(cls, args));
 			case PUSH_ARRAY: stack.push([]);
 			case PUSH_TRUE: stack.push(true);
 			case PUSH_FALSE: stack.push(false);
@@ -121,15 +120,16 @@ class HVM {
 			case PUSH_OBJECT: stack.push({});
 			case ARRAY_GET:
 				var array_i = get_rom();
-				var array_s = get_rom();
-				stack.push(stack.stack[array_s][array_i]);
+				var array_r = get_rom();
+				stack.push(stack.stack[array_r][array_i]);
 			case ARRAY_SET:
 				var array_i = get_rom();
-				var array_s = get_rom();
-				stack.stack[array_s][array_i] = stack.pop();
+				var array_r = get_rom();
+				stack.stack[array_r][array_i] = stack.pop();
 			case ARRAY_STACK:
-				var array = [for (i in 0...get_rom()) stack.pop()];
-				array.reverse();
+				var length = get_rom();
+				var array = new haxe.ds.Vector<Dynamic>(length);
+				for (i in 0...length) array[length-i-1] = stack.pop();
 				stack.push(array);
 			case ADD:
 				var v2:Dynamic = stack.pop();
@@ -191,6 +191,10 @@ class HVM {
 				var v2:Dynamic = stack.pop();
 				var v1:Dynamic = stack.pop();
 				stack.push(v1||v2);
+			case IS:
+				var v2:Dynamic = stack.pop();
+				var v1:Dynamic = stack.pop();
+				stack.push(Std.isOfType(v1, v2));
 			case SHL:
 				var v2:Dynamic = stack.pop();
 				var v1:Dynamic = stack.pop();
@@ -216,6 +220,12 @@ class HVM {
 			case NOT: stack.push(!stack.pop());
 			case NEG: stack.push(-stack.pop());
 			case NGBITS: stack.push(~stack.pop());
+			case DUP:
+				var stacktop = stack.top();
+				stack.push(stacktop);
+			case STK_OFF:
+				var stacktop = stack.top(get_rom());
+				stack.push(stacktop);
 		}
 		return null;
 	}
