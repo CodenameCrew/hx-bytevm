@@ -93,9 +93,11 @@ class HVM {
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
 		switch (instructions[ip]) {
+			#if HXBYTEVM_DEBUG
 			case COMMENT:
 				var comment = get_rom();
 				haxe.Log.trace(constants[comment]);
+			#end
 			case PUSH:
 				stack.push(get_rom());
 			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx

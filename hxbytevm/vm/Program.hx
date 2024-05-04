@@ -56,15 +56,17 @@ class Program {
 			trace(i, print_opcode(ip), rp, dp);
 
 			switch (ip) {
+				#if HXBYTEVM_DEBUG
 				case COMMENT: prints[4].push('COMMENT:   ${constant_stack[get_rom()]}');
+				#end
 				case PUSH: prints[4].push('VAR:       ${get_rom()}');
 				case PUSHV | SAVE:
 					var v_id = get_rom();
-					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[dp][v_id]}")');
+					var isValid = varnames_stack[dp] != null;
+					prints[4].push('VAR_ID:    $v_id  ("${ !isValid ? "invalid depth (propbably a error)" : varnames_stack[dp][v_id]}")');
 				case PUSHV_D | SAVE_D:
 					var d = get_rom();
 					var v_id = get_rom();
-					trace(varnames_stack[d], d, v_id);
 					if(varnames_stack[d] == null) prints[4].push('VAR_ID DEPTH ERROR D: $d, V_ID: $v_id');
 					else prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
 				case PUSHC:
@@ -194,7 +196,9 @@ class Program {
 			case STK_OFF: "STK_OFF";
 
 			case LENGTH: "LENGTH";
+			#if HXBYTEVM_DEBUG
 			case COMMENT: "COMMENT";
+			#end
 		}
 	}
 

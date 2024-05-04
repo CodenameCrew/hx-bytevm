@@ -20,6 +20,13 @@ class Pointer {
 	}
 }
 
+class UseStackValue {
+	public static var v = new UseStackValue();
+	private function new() {
+
+	}
+}
+
 class Compiler {
 	public var program(default, null):Program;
 
@@ -59,6 +66,7 @@ class Compiler {
 	}
 
 	public function getVarInDepth(name:String, ?depth:Int):Dynamic {
+		if(depth == null) depth = this.depth;
 		trace("Getting var " + name + " in depth " + depth);
 		if (program.varnames_stack[depth] == null)
 			program.varnames_stack[depth] = [];
@@ -152,8 +160,10 @@ class Compiler {
 	}
 
 	function comment(s:String) {
+		#if HXBYTEVM_DEBUG
 		program.instructions.push(COMMENT);
 		program.read_only_stack.push(getConstant(s));
+		#end
 	}
 
 	private var onRetPre:Void->Void = null;
@@ -286,7 +296,11 @@ class Compiler {
 				for (v in vars) {
 					// todo handle isFinal, isStatic, isPublic
 					declaredVars.push(v.name.string);
-					_compile(v.expr);
+					if(v.expr != null) {
+						_compile(v.expr);
+					} else {
+						program.instructions.push(PUSH_NULL);
+					}
 					//if(depth == 0) { // todo we dont need variables for non 0-depth
 						program.read_only_stack.push(getVarInDepth(v.name.string, depth));
 						program.instructions.push(SAVE);
@@ -441,9 +455,11 @@ class Compiler {
 				var name:String = null;
 
 				var func_s = pointer();
+				var func_return = pointer();
 
 				var old = declaredVars.length;
 
+				program.instructions.push(DEPTH_INC);
 				depth++;
 
 				switch(kind) {
@@ -453,7 +469,6 @@ class Compiler {
 						program.function_pointers.set(name, func_s); // TODO: store min args
 					default:
 				}
-				//program.instructions.push(DEPTH_INC); depth++;
 
 				comment("########## Start of function");
 
@@ -506,19 +521,39 @@ class Compiler {
 					program.instructions.push(ARRAY_GET_KNOWN); // Stack: [args, args[i]]
 					pointer_update(endPointer);
 
-					//getVarInDepth(arg.name.string, depth);
 					//program.instructions.push(POP); // TODO: arguments
+					/*_compile(mk(EVars([
+						{
+							name : arg.name,
+							isFinal : false,
+							isStatic : false,
+							isPublic : false,
+							type : arg.type,
+							expr : UseStackValue.v, // wait i have idea for how, brbr, fuck its not a expression
+							meta : arg.meta
+						}
+					])));*/
+
+					/*
+					// theres code that compiles special based on the known vars// whats with the declared vars stuff
 					program.read_only_stack.push(depth);
 					program.read_only_stack.push(getVarInDepth(arg.name.string, depth));
 					program.instructions.add(SAVE_D);
-					declaredVars.push(arg.name.string);
+						// evars doesnt do it, since it uses expr
+					*/ // huh alr
+					program.read_only_stack.push(getVarInDepth(arg.name.string)); // have to return a int
+					program.instructions.push(PUSHV);
+					declaredVars.push(arg.name.string); // do we need this or does evars alr do it?
 				}
 
 				comment("Running function");
 
-				//onRetPost = () -> {
-				//	program.instructions.push(DEPTH_DNC);
-				//}
+				onRetPost = () -> {
+					program.read_only_stack.push(func_return);
+					program.instructions.push(JUMP);
+					// todo make it not compile the return for these
+					//program.instructions.push(DEPTH_DNC);
+				}
 
 				// yea
 				// makes blocks not increase scope
@@ -527,13 +562,25 @@ class Compiler {
 						for (e in exprs) {
 							_compile(e);
 						}
-					default:
+					default: // ok now the depth inc is just off
 						_compile(func);
 				}
 
-				//program.instructions.push(DEPTH_DNC); depth--;
-				depth--;
+				// local_call args are alos messed up
+
+				// if the function doesnt return anything, since its always a explicit return, but now i realize that
+					// arrow functions would eb broken
+				// why doesnt the expr still store then as efunctions?
+				// we shouldnt push the entire func and funckind to the stack, thats just bad really bad
+				// whats this for? alr
+				// yea but i mean at compile time
+				// cant we just give all these funcs a id like we did with vars
+
+				// Return value if nothing was returned
 				program.instructions.push(PUSH_NULL);
+				pointer_update(func_return);
+				program.instructions.push(DEPTH_DNC);
+				depth--;
 				program.instructions.push(RET);
 
 				declaredVars = declaredVars.slice(0, old);
@@ -760,9 +807,9 @@ class Compiler {
 					}
 					program.read_only_stack.push(localPointer);
 					program.read_only_stack.push(args.length);
-					program.instructions.push(DEPTH_INC);
+					//program.instructions.push(DEPTH_INC);
 					program.instructions.push(LOCAL_CALL);
-					program.instructions.push(DEPTH_DNC);
+					//program.instructions.push(DEPTH_DNC);
 				} else {
 					_compile(e);
 					for (a in args) {
@@ -784,7 +831,7 @@ class Compiler {
 
 		}
 		//trace(expr.expr);
-		//trace(program.print());
+		// trace(depth, program.print());
 	}
 
 	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

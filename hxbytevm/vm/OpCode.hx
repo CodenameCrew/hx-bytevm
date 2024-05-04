@@ -76,8 +76,7 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 
 	var LENGTH:OpCode; // 0 ROM SPACE: pushes the length of the last array in stack, pushing it to the stack
 
-
-
-
+	#if HXBYTEVM_DEBUG
 	var COMMENT:OpCode; // 1 ROM SPACE: Adds a comment to the program
+	#end
 }

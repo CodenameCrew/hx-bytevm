@@ -12,6 +12,7 @@
 --define HXCPP_CHECK_POINTER
 --define HXCPP_STACK_LINE
 --define HXCPP_DEBUG_LINK
+--define HXBYTEVM_DEBUG
 # -D HXCPP_M64
 # -D HXCPP_ARM64
 --dce no
