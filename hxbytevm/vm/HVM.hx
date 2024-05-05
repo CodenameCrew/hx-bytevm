@@ -5,7 +5,7 @@ import hxbytevm.core.Ast.FunctionKind;
 import hxbytevm.utils.UnsafeReflect;
 
 class HVM {
-	var stack:Stack;
+	var stack:Stack = new Stack();
 	var depth:Int = 0;
 
 	var program:Program;
@@ -17,10 +17,10 @@ class HVM {
 	var ip:Int = 0;
 	var rp:Int = 0;
 
-	@:noCompletion public var _varnames:Array<Array<String>>;
-	@:noCompletion public var _variables:Array<Array<Dynamic>>;
+	@:noCompletion public var _varnames:Array<Array<String>> = [[]];
+	@:noCompletion public var _variables:Array<Array<Dynamic>> = [[]];
 
-	@:noCompletion public var constants:Array<Dynamic>;
+	@:noCompletion public var constants:Array<Dynamic> = [];
 
 	public var variables:VarAccess;
 
@@ -91,19 +91,13 @@ class HVM {
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
 		switch (instructions[ip]) {
-			#if HXBYTEVM_DEBUG
-			case COMMENT:
-				var comment = get_rom();
-				haxe.Log.trace(constants[comment]);
-			#end
 			case PUSH:
 				stack.push(get_rom());
 			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx
 			case PUSHV_D:
-				var v_id = get_rom();
 				var d = get_rom();
+				var v_id = get_rom();
 
-				trace(_variables, d, v_id);
 				stack.push(_variables[d][v_id]);
 			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
@@ -113,8 +107,7 @@ class HVM {
 				var v_id = get_rom();
 				var d = get_rom();
 				_variables[d][v_id] = stack.pop();
-			case RET:
-				ret = stack.pop();
+			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC: depth--;
 			case JUMP:
@@ -134,22 +127,15 @@ class HVM {
 					rp = r; ip = i - 1;
 				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
-				throw "Functions not implemented";
-				//var kind:FunctionKind = cast get_rom();
-				//var func:Func = cast get_rom();
+				var kind:FunctionKind = cast get_rom();
+				var func:Func = cast get_rom();
 			case CALL:
-				var length:Int = get_rom();
-				var args = new haxe.ds.Vector<Dynamic>(length);
-				for (i in 0...length) args[length-i-1] = stack.pop();
-
+				var args = stack.pop();
 				var func = stack.pop();
 				if(func == null) throw "Cannot call null";
 				if(!UnsafeReflect.isFunction(func))
 					throw "Cannot call non function";
-				stack.push(UnsafeReflect.callMethodUnsafe(null, func, args.toData()));
-
-			case LOCAL_CALL:
-
+				stack.push(UnsafeReflect.callMethodUnsafe(null, func, args));
 
 			case FIELD_GET: stack.push(UnsafeReflect.field(stack.pop(), get_rom()));
 			case FIELD_SET:
@@ -166,31 +152,13 @@ class HVM {
 			case PUSH_NULL: stack.push(null);
 			case PUSH_OBJECT: stack.push({});
 			case ARRAY_GET:
-				var array_i = stack.top(0);
-				var array_r = stack.top(-1);
-				//var array_i = get_rom();
-				//var array_r = get_rom();
+				var array_i = get_rom();
+				var array_r = get_rom();
 				stack.push(stack.stack[array_r][array_i]);
 			case ARRAY_SET:
-				//var array_i = get_rom();
-				//var array_r = get_rom();
-				var val = stack.pop();
-				var array_i = stack.top(0);
-				var array_r = stack.top(-1);
-				stack.stack[array_r][array_i] = val;
-			case ARRAY_GET_KNOWN:
-				//var array_i = stack.top(0);
-				//var array_r = stack.top(-1);
-				var array_r = stack.top(0);
 				var array_i = get_rom();
-				stack.push(stack.stack[array_r][array_i]);
-			case ARRAY_SET_KNOWN:
-				var val = stack.pop();
-				var array_r = stack.top(0);
-				var array_i = get_rom();
-				//var array_i = stack.top(0);
-				//var array_r = stack.top(-1);
-				stack.stack[array_r][array_i] = val;
+				var array_r = get_rom();
+				stack.stack[array_r][array_i] = stack.pop();
 			case ARRAY_STACK:
 				var length = get_rom();
 				var array = new haxe.ds.Vector<Dynamic>(length);
@@ -291,9 +259,6 @@ class HVM {
 			case STK_OFF:
 				var stacktop = stack.top(get_rom());
 				stack.push(stacktop);
-			case LENGTH:
-				var stacktop:Array<Dynamic> = stack.top();
-				stack.push(stacktop.length);
 		}
 		return null;
 	}

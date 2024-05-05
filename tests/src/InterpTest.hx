@@ -161,15 +161,9 @@ class InterpTest {
 						))
 					])),
 					mk(EReturn(
-						mk(EBinop(
-							BOpAdd,
-							mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
-								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(1)))))
-							])),
-							mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
-								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(2)))))
-							]))
-						))
+						mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
+							mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(1)))))
+						]))
 					))
 				]))}
 		)));
@@ -196,16 +190,16 @@ class InterpTest {
 	public static function main() {
 		Sys.println(Util.getTitle("INTERP TESTING"));
 
-		Sys.println(Util.getTitle("CALL TEST"));
-		run(HELLO_WORLD_EXPR);
+		// Sys.println(Util.getTitle("CALL TEST"));
+		// run(HELLO_WORLD_EXPR);
 
-		Sys.println(Util.getTitle("WHILE LOOP TEST"));
-		run(WHILE_LOOP_EXPR);
+		// Sys.println(Util.getTitle("WHILE LOOP TEST"));
+		// run(WHILE_LOOP_EXPR);
 
-		Sys.println(Util.getTitle("FIBBONACCI TEST"));
-		run(FIBBONACCI_FUNCTION_RECURSIVE);
+		// Sys.println(Util.getTitle("FIBBONACCI TEST"));
+		// run(FIBBONACCI_FUNCTION_RECURSIVE);
 
-		Sys.println(Util.getTitle("FIBBONACCI TEST"));
+		Sys.println(Util.getTitle("FUNCTION RECURSIVE"));
 		run(FUNCTION_RECURSIVE);
 	}
 

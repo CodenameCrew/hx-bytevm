@@ -10,9 +10,9 @@ class CompilerTest {
 		Sys.println(Util.getTitle("COMPILER TESTING"));
 		Sys.println("\n");
 
-		//run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
-		//run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
-		run(InterpTest.FIBBONACCI_FUNCTION_RECURSIVE, "FIBBONACCI_FUNCTION_RECURSIVE");
+		run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
+		run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
+		// run(InterpTest.FIBBONACCI_FUNCTION_RECURSIVE, "FIBBONACCI_FUNCTION_RECURSIVE");
 	}
 
 
@@ -28,9 +28,10 @@ class CompilerTest {
 		var vm:HVM = new HVM();
 		Sys.println(compiler.program.print());
 
-		Sys.println(compiler.program.varnames_stack);
-		Sys.println(compiler.program.read_only_stack);
-		Sys.println(compiler.program.constant_stack);
+		// Sys.println(compiler.program.varnames_stack);
+		// Sys.println(compiler.program.read_only_stack);
+		// Sys.println(compiler.program.constant_stack);
+
 		vm.run(compiler.program);
 	}
 }

@@ -21,13 +21,10 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var JUMP_COND:OpCode; // 2 ROM SPACE: Moves instruction pointer to ROM1, Moves ROM pointer to ROM2 if stack[stacktop] is true
 	var JUMP_N_COND:OpCode; // 2 ROM SPACE: Moves instruction pointer to ROM1, Moves ROM pointer to ROM2 if stack[stacktop] is false
 
-	var CALL:OpCode; // 1 ROM SPACE: Calls stack[stacktop-1-ROM1] (a function), with a args with a length of ROM1 from stack, return is pushed to stacktop
-	var LOCAL_CALL:OpCode; // 2 ROM SPACE:  Moves pointer to a ROM1 (a function pointer), and
-
-	var FIELD_SET:OpCode; // 1 ROM SPACE: Sets field ROM2 (a string) from stack[stacktop], popping it from stack
-	var FIELD_GET:OpCode; // 1 ROM SPACE: Gets field ROM2 (a string) from stack[stacktop], pushing to stack
-
 	var FUNC:OpCode; // 2 ROM SPACE: Defines a function, ROM1 being FunctionKind and ROM2 being Func (refer to ExprDef in core/Ast.hx), expects a OBlock directly after
+	var CALL:OpCode; // 0 ROM SPACE: Calls stack[stacktop-1] (a function), with a array of args from stack[stacktop], return is pushed to stacktop
+	var FIELD_GET:OpCode; // 1 ROM SPACE: Gets field ROM2 (a string) from stack[stacktop], pushing to stack
+	var FIELD_SET:OpCode; // 1 ROM SPACE: Sets field ROM2 (a string) from stack[stacktop], popping it from stack
 	var NEW:OpCode; // 0 ROM SPACE: Creates a instance from stack[stacktop] (args) being a class with args from stack[stacktop-1] (class), removing both from stack and pushing the new instance to stack
 
 	var PUSH_ARRAY:OpCode; // 0 ROM SPACE: Pushes a empty array to stack
@@ -36,10 +33,8 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var PUSH_NULL:OpCode; // 0 ROM SPACE: Pushes a null to stack
 	var PUSH_OBJECT:OpCode; // 0 ROM SPACE: Pushes a {} to stack
 
-	var ARRAY_GET:OpCode; // 0 ROM SPACE: Gets index stack[stacktop] from stack[stacktop], pushing to stack
-	var ARRAY_SET:OpCode; // 0 ROM SPACE: Sets index stack[stacktop-1] from stack[stacktop-2] with value stack[stacktop], popping it from stack
-	var ARRAY_GET_KNOWN:OpCode; // 1 ROM SPACE: Gets index ROM1 from stack[stacktop], pushing to stack
-	var ARRAY_SET_KNOWN:OpCode; // 1 ROM SPACE: Sets index ROM1 from stack[stacktop-1] with value stack[stacktop], popping it from stack
+	var ARRAY_GET:OpCode; // 2 ROM SPACE: Gets index ROM1 from stack[ROM2], pushing to stack
+	var ARRAY_SET:OpCode; // 2 ROM SPACE: Sets index ROM1 from stack[ROM2], popping it from stack
 	var ARRAY_STACK:OpCode; // 1 ROM SPACE: Creates a array from stack[stacktop] to stack[stacktop-ROM1], popping all values from stack
 
 	var ADD:OpCode; // 0 ROM SPACE: added last 2 variables in stack v1+v2, popping both of them and pushing the result to the stack
@@ -73,10 +68,4 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 
 	var DUP:OpCode; // 0 ROM SPACE: duplicates stack[stacktop], pushing it to stack
 	var STK_OFF:OpCode; // 1 ROM SPACE: gets stack[stacktop+ROM1], pushing it to stack
-
-	var LENGTH:OpCode; // 0 ROM SPACE: pushes the length of the last array in stack, pushing it to the stack
-
-	#if HXBYTEVM_DEBUG
-	var COMMENT:OpCode; // 1 ROM SPACE: Adds a comment to the program
-	#end
 }
