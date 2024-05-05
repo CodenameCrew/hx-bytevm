@@ -335,16 +335,17 @@ class Interp {
 					case EField(_, _, EFSafe): true;
 					default: false;
 				}
-				var e = expr(e);
-				if(e == null) // clean this up
+				var f = expr(e);
+				if(f == null) // clean this up
 					if(isSafe)
 						return null;
 					else
 						throw "Cannot call null";
 				var args = [for (a in args) expr(a)];
-				if(!UnsafeReflect.isFunction(e))
+				if(!UnsafeReflect.isFunction(f))
 					throw "Cannot call non function";
-				return UnsafeReflect.callMethodUnsafe(null, e, args);
+				// trace(HelperUtils.getIdentFromExpr(e) ,args, depth);
+				return UnsafeReflect.callMethodUnsafe(null, f, args);
 			case ENew(path, args):
 				var pack = HelperUtils.getPackFromTypePath(path.path);
 				var cls = switch(getVar(pack)) {

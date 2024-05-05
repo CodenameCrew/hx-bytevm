@@ -118,6 +118,72 @@ class InterpTest {
 		mk(EBlock(block));
 	};
 
+	public static var FUNCTION_RECURSIVE = {
+		var block = [];
+		block.push(mk(EFunction(
+			FNamed({
+				string : "RECURSIVE",
+				pos: {
+					min : 0,
+					max : 0,
+					file : "InterpTest.hx",
+				}
+			}, false),
+			{
+				//var ?params : Array<TypeParam>;
+				args : [
+					{
+						name : {
+							string : "n",
+							pos: {
+								min : 0,
+								max : 0,
+								file : "InterpTest.hx",
+							}
+						},
+						opt : false,
+						meta: null,
+						type: CTPath({ path: { pack: [], name: "Int", params: [], sub: "" }, pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
+						value: null
+					}
+				],
+				ret: CTPath({ path: { pack: [], name: "Int", params: [], sub: "" }, pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
+				expr: mk(EBlock([
+					mk(EIf(
+						mk(EBinop(BOpLte, mk(EConst(CIdent("n"))), mk(EConst(CInt(1))))), // if n <= 1
+						mk(EReturn(mk(EConst(CIdent("n"))))), // return 0
+						null
+					)),
+					mk(ECall(mk(EConst(CIdent("trace"))), [
+						mk(EBinop(BOpAdd,
+							mk(EConst(CString("RECURSIVE N:", SSingleQuotes))),
+							mk(EConst(CIdent("n")))
+						))
+					])),
+					mk(EReturn(
+						mk(EBinop(
+							BOpAdd,
+							mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
+								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(1)))))
+							])),
+							mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
+								mk(EBinop(BOpSub, mk(EConst(CIdent("n"))), mk(EConst(CInt(2)))))
+							]))
+						))
+					))
+				]))}
+		)));
+		block.push(mk(ECall(mk(EConst(CIdent("trace"))), [
+			mk(EBinop(BOpAdd,
+				mk(EConst(CString("RECURSIVE(10) (THIS IS LAST CALL) = ", SSingleQuotes))),
+				mk(ECall(mk(EConst(CIdent("RECURSIVE"))), [
+					mk(EConst(CInt(10)))
+				]))
+			))
+		])));
+		mk(EBlock(block));
+	};
+
 	public static function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
 		if(pos == null) pos = {
 			min : 0,
@@ -138,11 +204,15 @@ class InterpTest {
 
 		Sys.println(Util.getTitle("FIBBONACCI TEST"));
 		run(FIBBONACCI_FUNCTION_RECURSIVE);
+
+		Sys.println(Util.getTitle("FIBBONACCI TEST"));
+		run(FUNCTION_RECURSIVE);
 	}
 
 	public static function run( e : Expr ) {
+		Sys.println(Util.getTitle("EXPR PRINTED:") + "\n" + Printer.printExpr(e));
+
 		var interp = new Interp();
 		interp.run(e);
-		Sys.println(Util.getTitle("EXPR PRINTED:") + "\n" + Printer.printExpr(e));
 	}
 }
