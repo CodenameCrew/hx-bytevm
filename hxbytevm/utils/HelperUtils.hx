@@ -3,7 +3,7 @@ package hxbytevm.utils;
 import hxbytevm.core.Ast;
 
 class HelperUtils {
-	public static function getPackFromTypePath(typePath:TypePath):String {
+	@:pure public static function getPackFromTypePath(typePath:TypePath):String {
 		var pack = "";
 		for(p in typePath.pack) {
 			pack += p + ".";
@@ -15,7 +15,7 @@ class HelperUtils {
 		return pack;
 	}
 
-	public inline static function getIdentFromExpr(e: Expr): String {
+	@:pure public inline static function getIdentFromExpr(e: Expr): String {
 		return switch (e.expr) {
 			case EConst(CIdent(s)): s;
 			default: null;

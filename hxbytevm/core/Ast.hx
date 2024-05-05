@@ -100,6 +100,14 @@ enum Constant {
 	CRegexp(value:String, options:String);
 }
 
+enum TConstant {
+	CInt(value:String, ?suffix:String);
+	CFloat(value:String, ?suffix:String);
+	CString(value:String, qoutes:StringLiteralKind);
+	CIdent(value:String);
+	CRegexp(value:String, options:String);
+}
+
 enum UnopFlag {
 	UFPrefix;
 	UFPostfix;

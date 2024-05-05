@@ -1,7 +1,7 @@
 package hxbytevm.utils;
 
 class StringUtils {
-	public static function unescape(s: String): String {
+	@:pure public static function unescape(s: String): String {
 		/*
 		let c = s.[i] in
 		let fail msg = raise (Invalid_escape_sequence(c,i,msg)) in
@@ -53,11 +53,69 @@ class StringUtils {
 				Buffer.add_char b c;
 				loop false (i + 1)
 				*/
-				return s;
+		return s;
 	}
 
-	public static function getTitle(title:String, ?dashsLen:Int = 46) {
+	@:pure public static function getTitle(title:String, ?dashsLen:Int = 46) {
 		var l = StringTools.lpad("", "-", Std.int((dashsLen - title.length - 2)/2));
 		return l + ' $title ' + l;
+	}
+
+	@:pure static function isJson(s:String) {
+		var len = s.length;
+		var i = 0;
+		while (i < len) {
+			var c = StringTools.fastCodeAt(s, i++);
+			if(c >= 'a'.code && c <= 'z'.code) continue;
+			if(c >= 'A'.code && c <= 'Z'.code) continue;
+			if(c >= '0'.code && c <= '9'.code) continue;
+			if(c == '_'.code) continue;
+			return false;
+		}
+		return true;
+	}
+
+	@:pure static inline function isPrintable(c:Int) {
+		return c >= 32 && c <= 126;
+	}
+
+	@:pure static inline function hex(c:Int, ?len:Int = 2) {
+		return StringTools.hex(c, len).toLowerCase();
+	}
+
+	@:pure public static function getEscapedString(s:String) {
+		var buf = new StringBuf();
+		#if target.unicode
+		var s = new UnicodeString(s);
+		#end
+		for( i in 0...s.length ) {
+			#if target.unicode
+			var c:Null<Int> = s.charCodeAt(i);
+			#else
+			var c:Null<Int> = StringTools.unsafeCodeAt(s, i);
+			#end
+			switch( c ) {
+				case '"'.code: buf.add('\\"');
+				case '\\'.code: buf.add('\\\\');
+				case '\n'.code: buf.add('\\n');
+				case '\r'.code: buf.add('\\r');
+				case '\t'.code: buf.add('\\t');
+				default:
+					if(c == null) continue;
+					if(isPrintable(c))
+						buf.addChar(c);
+					else {
+						if(c > 0xFF) {
+							buf.add("\\u{");
+							buf.add(hex(c, null));
+							buf.add("}");
+						} else {
+							buf.add("\\x");
+							buf.add(hex((c & 0xFF)));
+						}
+					}
+			}
+		}
+		return buf.toString();
 	}
 }

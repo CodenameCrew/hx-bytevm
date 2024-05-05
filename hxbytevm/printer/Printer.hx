@@ -24,6 +24,7 @@ package hxbytevm.printer;
 
 // Copyright included since a lot of it is from the haxe.macro.Printer class
 
+import hxbytevm.utils.StringUtils;
 import hxbytevm.vm.Program;
 import hxbytevm.core.Ast;
 
@@ -36,65 +37,7 @@ class Printer {
 		indentation = 0;
 	}
 
-	static function isJson(s:String) {
-		var len = s.length;
-		var i = 0;
-		while (i < len) {
-			var c = StringTools.fastCodeAt(s, i++);
-			if(c >= 'a'.code && c <= 'z'.code) continue;
-			if(c >= 'A'.code && c <= 'Z'.code) continue;
-			if(c >= '0'.code && c <= '9'.code) continue;
-			if(c == '_'.code) continue;
-			return false;
-		}
-		return true;
-	}
-
-	static inline function isPrintable( c : Int ) {
-		return c >= 32 && c <= 126;
-	}
-
-	static inline function hex( c : Int, ?len : Int = 2 ) {
-		return StringTools.hex(c, len).toLowerCase();
-	}
-
-	public static function getEscapedString( s : String ) {
-		var buf = new StringBuf();
-		#if target.unicode
-		var s = new UnicodeString(s);
-		#end
-		for( i in 0...s.length ) {
-			#if target.unicode
-			var c:Null<Int> = s.charCodeAt(i);
-			#else
-			var c:Null<Int> = StringTools.unsafeCodeAt(s, i);
-			#end
-			switch( c ) {
-				case '"'.code: buf.add('\\"');
-				case '\\'.code: buf.add('\\\\');
-				case '\n'.code: buf.add('\\n');
-				case '\r'.code: buf.add('\\r');
-				case '\t'.code: buf.add('\\t');
-				default:
-					if(c == null) continue;
-					if(isPrintable(c))
-						buf.addChar(c);
-					else {
-						if(c > 0xFF) {
-							buf.add("\\u{");
-							buf.add(hex(c, null));
-							buf.add("}");
-						} else {
-							buf.add("\\x");
-							buf.add(hex((c & 0xFF)));
-						}
-					}
-			}
-		}
-		return buf.toString();
-	}
-
-	public function printUnop(op:Unop)
+	@:pure public function printUnop(op:Unop)
 		return switch (op) {
 			case UIncrement: "++";
 			case UDecrement: "--";
@@ -104,7 +47,7 @@ class Printer {
 			case USpread: "...";
 		}
 
-	public function printBinop(op:Binop)
+	@:pure public function printBinop(op:Binop)
 		return switch (op) {
 			case BOpAdd: "+";
 			case BOpMult: "*";
@@ -146,7 +89,7 @@ class Printer {
 		return program.print();
 	}
 
-	public static function printExpr(e:Expr):String {
+	@:pure public static function printExpr(e:Expr):String {
 		return new Printer().expr(e);
 	}
 
@@ -158,18 +101,18 @@ class Printer {
 		indentation--;
 	}
 
-	public function getIndent() {
+	@:pure public function getIndent() {
 		return StringTools.lpad("", "\t", indentation);
 	}
 
-	public static function isBlock(e:Expr):Bool {
+	@:pure public static function isBlock(e:Expr):Bool {
 		return switch e.expr {
 			case EBlock(_): true;
 			default: false;
 		}
 	}
 
-	public function printConstant(c:Constant)
+	@:pure public function printConstant(c:Constant)
 		return switch (c) {
 			case CString(s, SSingleQuotes): "'" + s + "'";
 			case CString(s, _): '"' + s + '"';
@@ -277,7 +220,7 @@ class Printer {
 			case TPExpr(e): expr(e);
 		}
 
-	public function printAccess(access:Access)
+	@:pure public function printAccess(access:Access)
 		return switch (access) {
 			case AStatic: "static";
 			case APublic: "public";
@@ -401,7 +344,7 @@ class Printer {
 						case null | QUnquoted:
 							add(field.field);
 						case QQuoted:
-							add('"' + getEscapedString(field.field) + '"');
+							add('"' + StringUtils.getEscapedString(field.field) + '"');
 					}
 					add(": ");
 					add(expr(field.expr));

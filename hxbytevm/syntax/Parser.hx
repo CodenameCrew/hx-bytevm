@@ -14,7 +14,7 @@ class Parser {
 		]), 0);
 	}
 
-	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
+	@:pure public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
 		return { expr : e, pos : pos };
 	}
 }

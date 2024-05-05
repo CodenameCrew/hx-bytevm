@@ -6,7 +6,7 @@ import cpp.ObjectType;
 
 @:analyzer(ignore)
 class UnsafeReflect {
-	public #if !cpp inline #end static function hasField(o:Dynamic, field:String):Bool {
+	@:pure public #if !cpp inline #end static function hasField(o:Dynamic, field:String):Bool {
 		#if cpp
 		untyped {
 			return o.__HasField(field);
@@ -16,7 +16,7 @@ class UnsafeReflect {
 		#end
 	}
 
-	public #if !cpp inline #end static function field(o:Dynamic, field:String):Dynamic {
+	@:pure public #if !cpp inline #end static function field(o:Dynamic, field:String):Dynamic {
 		#if cpp
 		untyped {
 			return o.__Field(field, untyped __cpp__("::hx::paccNever"));
@@ -97,7 +97,7 @@ class UnsafeReflect {
 		#end
 	}
 
-	public inline static function fields(o:Dynamic):Array<String>
+	@:pure public inline static function fields(o:Dynamic):Array<String>
 		return Reflect.fields(o);
 		/*untyped {
 			if (o == null)
@@ -107,7 +107,7 @@ class UnsafeReflect {
 			return a;
 		}*/
 
-	public #if !cpp inline #end static function isFunction(f:Dynamic):Bool
+	@:pure public #if !cpp inline #end static function isFunction(f:Dynamic):Bool
 		#if cpp
 		untyped {
 			return f.__GetType() == ObjectType.vtFunction;
@@ -116,16 +116,16 @@ class UnsafeReflect {
 		return Reflect.isFunction(f);
 		#end
 
-	public inline static function compare<T>(a:T, b:T):Int {
+	@:pure public inline static function compare<T>(a:T, b:T):Int {
 		return Reflect.compare(a, b);
 		//return (a == b) ? 0 : (((a : Dynamic) > (b : Dynamic)) ? 1 : -1);
 	}
 
-	public inline static function compareMethods(f1:Dynamic, f2:Dynamic):Bool {
+	@:pure public inline static function compareMethods(f1:Dynamic, f2:Dynamic):Bool {
 		return Reflect.compareMethods(f1, f2);
 	}
 
-	public #if !cpp inline #end static function isObject(v:Dynamic):Bool {
+	@:pure public #if !cpp inline #end static function isObject(v:Dynamic):Bool {
 		#if cpp
 		untyped {
 			var t:Int = v.__GetType();
@@ -137,7 +137,7 @@ class UnsafeReflect {
 	}
 
 	// Custom function
-	public #if !cpp inline #end static function isClass(v:Dynamic):Bool {
+	@:pure public #if !cpp inline #end static function isClass(v:Dynamic):Bool {
 		#if cpp
 		untyped {
 			return v.__GetType() == ObjectType.vtClass;
@@ -147,7 +147,7 @@ class UnsafeReflect {
 		#end
 	}
 
-	public #if !cpp inline #end static function isEnumValue(v:Dynamic):Bool {
+	@:pure public #if !cpp inline #end static function isEnumValue(v:Dynamic):Bool {
 		#if cpp
 		untyped {
 			return v.__GetType() == ObjectType.vtEnum;
@@ -167,7 +167,7 @@ class UnsafeReflect {
 		#end
 	}
 
-	public #if !cpp inline #end static function copy<T>(o:Null<T>):Null<T> {
+	@:pure public #if !cpp inline #end static function copy<T>(o:Null<T>):Null<T> {
 		#if cpp
 		if (o == null)
 			return null;
