@@ -509,7 +509,7 @@ class Lexer {
 
 			["\"", () -> parseStringDouble()],
 			["'", () -> parseStringSingle()],
-			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s)], // todo: fix
+			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s)],
 			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TConst(CIdent(s))],
 
 			// typedecl
