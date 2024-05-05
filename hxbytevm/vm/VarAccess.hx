@@ -21,7 +21,7 @@ class VarAccessKeyValueIterator {
 
 	public inline function next():{key:String, value:Dynamic} {
 		_current++;
-		return {value: values[_current], key: names[_current]};
+		return @:fixed {value: values[_current], key: names[_current]};
 	}
 }
 

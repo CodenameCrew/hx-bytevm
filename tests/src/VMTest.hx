@@ -8,40 +8,35 @@ class VMTest {
 		[PUSHC, PUSHC, ADD, RET],
 		[0, 1],
 		[2, 5],
-		[[]],
-		[]
+		[[]]
 	);
 
 	public static var PROGRAM_NEG:Program = new Program(
 		[PUSHC, NEG, RET],
 		[0],
 		[2],
-		[[]],
-		[]
+		[[]]
 	);
 
 	public static var PROGRAM_IF_ELSE:Program = new Program(
 		[PUSHC, PUSHC, EQ, NOT, JUMP_COND, PUSH, JUMP, PUSH, RET],
 		[0, 1, 7, 6, "YEAH :D", 8, 7, "NAH :("],
 		[2, 8],
-		[[]],
-		[]
+		[[]]
 	);
 
 	public static var PROGRAM_CALL:Program = new Program(
 		[PUSH, PUSHC, PUSH_TRUE, CALL],
 		[function_test, 0, 2],
 		[2],
-		[[]],
-		[]
+		[[]]
 	);
 
 	public static var PROGRAM_DO_WHILE:Program = new Program(
 		[PUSHC, SAVE, PUSH, PUSHC, PUSHV, ADD, CALL, POP, PUSHV, INC, SAVE, PUSHV, PUSHC, LT, JUMP_COND],
 		[0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 2, 1],
 		[0, 10, "DO WHILE LOOP (i):  "],
-		[["i"]],
-		[]
+		[["i"]]
 	);
 
 	public static function main() {

@@ -166,7 +166,7 @@ class Program {
 		}
 	}
 
-	public static function createEmpty():Program {
+	public inline static function createEmpty():Program {
 		return new Program([], [], [], []);
 	}
 }

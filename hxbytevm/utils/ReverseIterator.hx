@@ -31,7 +31,7 @@ class ReverseArrayKeyValueIterator<T> {
 
 	@:pure public inline function hasNext() return i > -1;
 	public inline function next() {
-		return {value: arr[i], key: i--};
+		return @:fixed {value: arr[i], key: i--};
 	}
 
 	@:pure public static inline function reversedKeyValues<T>(arr:Array<T>) {

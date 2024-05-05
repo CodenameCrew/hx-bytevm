@@ -24,7 +24,7 @@ class DeclaredVar {
 class Interp {
 	public function new() {
 		addTopLevelVar("trace", Reflect.makeVarArgs(function(args:Array<Dynamic>) {
-			var inf:haxe.PosInfos = {
+			var inf:haxe.PosInfos = @:fixed {
 				fileName: "",
 				lineNumber: 0,
 				methodName: "", // TODO: get function name of function which called it,

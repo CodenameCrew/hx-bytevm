@@ -56,7 +56,7 @@ class HVM {
 		_variables = [for (scopenames in _varnames) cast new haxe.ds.Vector<Dynamic>(scopenames.length)];
 
 		variables.set("trace", Reflect.makeVarArgs(function(args:Array<Dynamic>) {
-			var inf:haxe.PosInfos = {
+			var inf:haxe.PosInfos = @:fixed {
 				fileName: "",
 				lineNumber: 0,
 				methodName: "", // TODO: get function name of function which called it,

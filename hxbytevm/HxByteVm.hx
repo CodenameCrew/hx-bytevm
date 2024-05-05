@@ -21,7 +21,7 @@ class HxByteVm {
 	#end
 
 	public function loadString( code : String ) {
-		var tokens = new hxbytevm.syntax.Lexer().parse( code );
+		var tokens = hxbytevm.syntax.Lexer.parse( code );
 		_ast = new hxbytevm.syntax.Parser().parse( tokens );
 		_loaded = true;
 	}
