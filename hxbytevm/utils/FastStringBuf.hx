@@ -99,11 +99,11 @@ class FastStringBuf {
 		b = "";
 	}
 
-	inline function get_length():Int {
+	@:pure inline function get_length():Int {
 		return b.length;
 	}
 
-	public inline function flush():Void {
+	@:pure public inline function flush():Void {
 	}
 
 	public inline function add<T>(x:T):Void {
@@ -118,7 +118,7 @@ class FastStringBuf {
 		b += (len == null ? s.substr(pos) : s.substr(pos, len));
 	}
 
-	public inline function toString():String {
+	@:pure public inline function toString():String {
 		return b;
 	}
 }

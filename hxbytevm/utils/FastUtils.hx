@@ -23,28 +23,28 @@ package hxbytevm.utils;
 
 	@:native('repeatString') public static function repeatString(str:String, times:Int):String;
 	#else
-	public static inline function combineStringFast1(a:String):String return _combineString(a);
-	public static inline function combineStringFast2(a:String, b:String):String return _combineString(a,b);
-	public static inline function combineStringFast3(a:String, b:String, c:String):String return _combineString(a,b,c);
-	public static inline function combineStringFast4(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
-	public static inline function combineStringFast5(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
-	public static inline function combineStringFast6(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
+	@:pure public static inline function combineStringFast1(a:String):String return _combineString(a);
+	@:pure public static inline function combineStringFast2(a:String, b:String):String return _combineString(a,b);
+	@:pure public static inline function combineStringFast3(a:String, b:String, c:String):String return _combineString(a,b,c);
+	@:pure public static inline function combineStringFast4(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
+	@:pure public static inline function combineStringFast5(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
+	@:pure public static inline function combineStringFast6(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
 
-	public static inline function combineString1(a:String):String return _combineString(a);
-	public static inline function combineString2(a:String, b:String):String return _combineString(a,b);
-	public static inline function combineString3(a:String, b:String, c:String):String return _combineString(a,b,c);
-	public static inline function combineString4(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
-	public static inline function combineString5(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
-	public static inline function combineString6(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
+	@:pure public static inline function combineString1(a:String):String return _combineString(a);
+	@:pure public static inline function combineString2(a:String, b:String):String return _combineString(a,b);
+	@:pure public static inline function combineString3(a:String, b:String, c:String):String return _combineString(a,b,c);
+	@:pure public static inline function combineString4(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
+	@:pure public static inline function combineString5(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
+	@:pure public static inline function combineString6(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
 
-	private static function _combineString(...a:String):String {
+	@:pure private static function _combineString(...a:String):String {
 		var buf = new StringBuf();
 		for(s in a)
 			buf.add(s);
 		return buf.toString();
 	}
 
-	public static function repeatString(str:String, times:Int):String {
+	@:pure public static function repeatString(str:String, times:Int):String {
 		var buf = new StringBuf();
 		for(i in 0...times)
 			buf.add(str);
