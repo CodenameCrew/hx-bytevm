@@ -18,8 +18,8 @@ class RegexUtils {
 			if(suffix == "")
 				return string;
 			if(string.length == 1 || (string.lastIndexOf("[") == 0 && string.indexOf("]") == string.length - 1))
-				return string + suffix;
-			return FastUtils.combineString4("(?:", string, ")", suffix);
+				return FastUtils.combineStringFast2(string, suffix);
+			return FastUtils.combineStringFast4("(?:", string, ")", suffix);
 			//"(?:" + string + ")" + suffix;
 		}
 		for (rule in rules) {
@@ -31,7 +31,8 @@ class RegexUtils {
 				case Star(pattern): makeGroup(_makeRegexRule(pattern), "*");
 				case Plus(pattern): makeGroup(_makeRegexRule(pattern), "+");
 				case Either([rr]): _makeRegexRule([rr]);
-				case Either(rr): (isStart ? "": "(?:") + [for(r in rr) _makeRegexRule([r])].join("|") + (isStart ? "": ")");
+				case Either(rr) if(isStart): [for(r in rr) _makeRegexRule([r])].join("|");
+				case Either(rr): FastUtils.combineStringFast3("(?:", [for(r in rr) _makeRegexRule([r])].join("|"), ")");
 			}
 		}
 		return str;

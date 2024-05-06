@@ -1,5 +1,6 @@
 package;
 
+import hxbytevm.utils.FastUtils;
 using StringTools;
 
 class Util {
@@ -18,11 +19,11 @@ class Util {
 			result += StringTools.replace(Std.string(coefficient), ".", "");
 			var decimalLength = Std.string(coefficient).split(".")[1].length;
 			var additionalZeros:Int = Std.int(Math.abs(exponent - decimalLength));
-			result += StringTools.lpad("", "0", additionalZeros); // repeat
+			result += FastUtils.repeatString("0", additionalZeros); // repeat
 		} else {
 			result += "0.";
 			var leadingZeros:Int = Std.int(Math.abs(exponent) - 1);
-			result += StringTools.lpad("", "0", leadingZeros); // repeat
+			result += FastUtils.repeatString("0", leadingZeros); // repeat
 			result += StringTools.replace(Std.string(coefficient), ".", "");
 		}
 
@@ -51,7 +52,7 @@ class Util {
 	}
 
 	public static function getTitle(title:String, ?dashsLen:Int = 70) {
-		var l = StringTools.lpad("", "-", Std.int((dashsLen - title.length - 2)/2));
+		var l = FastUtils.repeatString("-", Std.int((dashsLen - title.length - 2)/2));
 		return l + ' $title ' + l;
 	}
 }

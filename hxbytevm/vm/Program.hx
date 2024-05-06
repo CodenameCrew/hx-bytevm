@@ -1,5 +1,6 @@
 package hxbytevm.vm;
 
+import hxbytevm.utils.FastUtils;
 import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
@@ -84,11 +85,11 @@ class Program {
 
 		for (i in 0...prints.length)
 			for (p in 0...prints[i].length) {
-				prints[i][p] += StringTools.lpad("", " ", (printsSizes[i] - prints[i][p].length));
+				prints[i][p] += FastUtils.repeatString(" ", (printsSizes[i] - prints[i][p].length));
 			}
 
 		var header:String = ' ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].shift() : ""}';
-		var result:String = '${StringUtils.getTitle("BYTE CODE:", header.length)}\n$header\n${StringTools.lpad("", "-", header.length)}\n';
+		var result:String = '${StringUtils.getTitle("BYTE CODE:", header.length)}\n$header\n${FastUtils.repeatString("-", header.length)}\n';
 		for (i in 0...instructions.length)
 			result += ' ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n';
 

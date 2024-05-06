@@ -24,6 +24,7 @@ package hxbytevm.printer;
 
 // Copyright included since a lot of it is from the haxe.macro.Printer class
 
+import hxbytevm.utils.FastUtils;
 import hxbytevm.utils.StringUtils;
 import hxbytevm.vm.Program;
 import hxbytevm.core.Ast;
@@ -102,7 +103,7 @@ class Printer {
 	}
 
 	@:pure public function getIndent() {
-		return StringTools.lpad("", "\t", indentation);
+		return FastUtils.repeatString("\t", indentation);
 	}
 
 	@:pure public static function isBlock(e:Expr):Bool {

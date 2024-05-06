@@ -79,8 +79,35 @@ class StringUtils {
 		return c >= 32 && c <= 126;
 	}
 
+	@:pure public static function hexLower(n:Int, digits:Int = -1) {
+		#if flash
+		var n:UInt = n;
+		var s:String = untyped n.toString(16);
+		s = s.toLowerCase();
+		#else
+		var s = "";
+		var hexChars = "0123456789abcdef";
+		do {
+			s = hexChars.charAt(n & 15) + s;
+			n >>>= 4;
+		} while (n > 0);
+		#end
+		#if python
+		if (digits != -1 && s.length < digits) {
+			var diff = digits - s.length;
+			for (_ in 0...diff)
+				s = "0" + s;
+		}
+		#else
+		if (digits != -1)
+			while (s.length < digits)
+				s = "0" + s;
+		#end
+		return s;
+	}
+
 	@:pure static inline function hex(c:Int, ?len:Int = 2) {
-		return StringTools.hex(c, len).toLowerCase();
+		return hexLower(c, len);
 	}
 
 	@:pure public static function getEscapedString(s:String) {

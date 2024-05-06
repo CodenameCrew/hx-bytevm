@@ -9,6 +9,13 @@
 //template <typename... T>
 //String combineString(T... args);
 
+String combineStringFast(String a);
+String combineStringFast(String a, String b);
+String combineStringFast(String a, String b, String c);
+String combineStringFast(String a, String b, String c, String d);
+String combineStringFast(String a, String b, String c, String d, String e);
+String combineStringFast(String a, String b, String c, String d, String e, String f);
+
 String combineString(String a);
 String combineString(String a, String b);
 String combineString(String a, String b, String c);

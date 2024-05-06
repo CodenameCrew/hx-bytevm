@@ -8,10 +8,10 @@ class Parser {
 
 	public function parse( tokens : Array<Token> ) : Expr {
 		return mk(EBlock([
-			mk(ECall(mk(EConst(CIdent("trace")), 0), [
-				mk(EConst(CString("Hello World", SSingleQuotes)), 0)
-			]), 0)
-		]), 0);
+			mk(ECall(mk(EConst(CIdent("trace"))), [
+				mk(EConst(CString("Hello World", SSingleQuotes)))
+			]))
+		]));
 	}
 
 	@:pure public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {

@@ -9,8 +9,9 @@ class HelperUtils {
 			pack += p + ".";
 		}
 		pack += typePath.name;
-		if(typePath.sub != null && typePath.sub.length > 0)
-			pack += typePath.sub;
+		var sub = typePath.sub;
+		if(sub != null && sub.length > 0)
+			pack += "." + sub;
 		// TODO: params
 		return pack;
 	}
