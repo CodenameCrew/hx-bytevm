@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xml>
+	<pragma once="true" />
+
+	<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
+
+	<files id="haxe">
+		<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
+		<file name="${HXBYTEVMUTILS_PATH}FastUtils.cpp" />
+	</files>
+</xml>

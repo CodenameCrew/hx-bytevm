@@ -19,7 +19,8 @@ class RegexUtils {
 				return string;
 			if(string.length == 1 || (string.lastIndexOf("[") == 0 && string.indexOf("]") == string.length - 1))
 				return string + suffix;
-			return "(?:" + string + ")" + suffix;
+			return FastUtils.combineString4("(?:", string, ")", suffix);
+			//"(?:" + string + ")" + suffix;
 		}
 		for (rule in rules) {
 			str += switch (rule) {
