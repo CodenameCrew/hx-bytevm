@@ -21,7 +21,6 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var JUMP_COND:OpCode; // 2 ROM SPACE: Moves instruction pointer to ROM1, Moves ROM pointer to ROM2 if stack[stacktop] is true
 	var JUMP_N_COND:OpCode; // 2 ROM SPACE: Moves instruction pointer to ROM1, Moves ROM pointer to ROM2 if stack[stacktop] is false
 
-	var FUNC:OpCode; // 2 ROM SPACE: Defines a function, ROM1 being FunctionKind and ROM2 being Func (refer to ExprDef in core/Ast.hx), expects a OBlock directly after
 	var CALL:OpCode; // 0 ROM SPACE: Calls stack[stacktop-1] (a function), with a array of args from stack[stacktop], return is pushed to stacktop
 	var FIELD_GET:OpCode; // 1 ROM SPACE: Gets field ROM2 (a string) from stack[stacktop], pushing to stack
 	var FIELD_SET:OpCode; // 1 ROM SPACE: Sets field ROM2 (a string) from stack[stacktop], popping it from stack

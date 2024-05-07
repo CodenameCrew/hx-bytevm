@@ -91,10 +91,6 @@ class Program {
 					var _ip = get_rom();
 					var _rp = get_rom();
 					prints[4].push('IP: ${_ip}, RP: ${_rp}');
-				case FUNC:
-					var kind = get_rom();
-					var func = get_rom();
-					prints[4].push('K:  ${kind}, F:  ${func}');
 				case FIELD_GET | FIELD_SET: prints[4].push('NAME:  ${get_rom()}');
 				case ARRAY_GET | ARRAY_SET:
 					var array_i = get_rom();
@@ -153,7 +149,6 @@ class Program {
 			case JUMP_COND: "JUMP_COND";
 			case JUMP_N_COND: "JUMP_N_COND";
 
-			case FUNC: "FUNC";
 			case CALL: "CALL";
 			case FIELD_SET: "FIELD_SET";
 			case FIELD_GET: "FIELD_GET";

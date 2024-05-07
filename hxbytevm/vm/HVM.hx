@@ -133,16 +133,15 @@ class HVM {
 			case JUMP_COND:
 				var r = get_rom();
 				var i = get_rom();
-				if (stack.pop() == true)
+				if (stack.pop() == true) {
 					_jump(i-1, r);
+				}
 			case JUMP_N_COND:
 				var r = get_rom();
 				var i = get_rom();
-				if (stack.pop() == false)
+				if (stack.pop() == false) {
 					_jump(i-1, r);
-			case FUNC: // TODO: IMPLEMENT FUNCTIONS
-				var kind:FunctionKind = cast get_rom();
-				var func:Func = cast get_rom();
+				}
 			case CALL:
 				var args = stack.pop();
 				var func = stack.pop();
