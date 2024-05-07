@@ -111,6 +111,16 @@ String combineStringFast(String a, String b, String c) {return _combineStringFas
 String combineStringFast(String a, String b, String c, String d) {return _combineStringFast({a, b, c, d});}
 String combineStringFast(String a, String b, String c, String d, String e) {return _combineStringFast({a, b, c, d, e});}
 String combineStringFast(String a, String b, String c, String d, String e, String f) {return _combineStringFast({a, b, c, d, e, f});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g) {return _combineStringFast({a, b, c, d, e, f, g});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h) {return _combineStringFast({a, b, c, d, e, f, g, h});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i) {return _combineStringFast({a, b, c, d, e, f, g, h, i});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k, l});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k, l, m});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k, l, m, n});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n, String o) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k, l, m, n, o});}
+String combineStringFast(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n, String o, String p) {return _combineStringFast({a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p});}
 
 String combineString(String a) {return a;}
 String combineString(String a, String b) {return _combineString({a, b});}
@@ -118,6 +128,16 @@ String combineString(String a, String b, String c) {return _combineString({a, b,
 String combineString(String a, String b, String c, String d) {return _combineString({a, b, c, d});}
 String combineString(String a, String b, String c, String d, String e) {return _combineString({a, b, c, d, e});}
 String combineString(String a, String b, String c, String d, String e, String f) {return _combineString({a, b, c, d, e, f});}
+String combineString(String a, String b, String c, String d, String e, String f, String g) {return _combineString({a, b, c, d, e, f, g});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h) {return _combineString({a, b, c, d, e, f, g, h});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i) {return _combineString({a, b, c, d, e, f, g, h, i});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j) {return _combineString({a, b, c, d, e, f, g, h, i, j});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k) {return _combineString({a, b, c, d, e, f, g, h, i, j, k});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l) {return _combineString({a, b, c, d, e, f, g, h, i, j, k, l});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m) {return _combineString({a, b, c, d, e, f, g, h, i, j, k, l, m});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n) {return _combineString({a, b, c, d, e, f, g, h, i, j, k, l, m, n});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n, String o) {return _combineString({a, b, c, d, e, f, g, h, i, j, k, l, m, n, o});}
+String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i, String j, String k, String l, String m, String n, String o, String p) {return _combineString({a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p});}
 
 String repeatString(String str, int times) {
 	if (times <= 0)

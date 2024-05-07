@@ -52,12 +52,14 @@ class FastStringBuf {
 	}
 
 	public function flush():Void {
-		b.push(charBufAsString());
+		if(charBuf.length > 0)
+			b.push(charBufAsString());
 		charBuf = new Array<cpp.Char>();
 	}
 
 	public inline function flushAndClear():Void {
-		b.push(charBufAsString());
+		if(charBuf.length > 0)
+			b.push(charBufAsString());
 		charBuf = null;
 	}
 

@@ -58,7 +58,8 @@ class StringUtils {
 
 	@:pure public static function getTitle(title:String, ?dashsLen:Int = 46) {
 		var l = FastUtils.repeatString("-", Std.int((dashsLen - title.length - 2)/2));
-		return l + ' $title ' + l;
+		return FastUtils.combineString5(l, " ", title, " ", l);
+		//l + ' $title ' + l;
 	}
 
 	@:pure static function isJson(s:String) {

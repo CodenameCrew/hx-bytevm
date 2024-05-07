@@ -10,7 +10,11 @@ class Stack {
 	public static final DEFAULT_STACK_SIZE:Int = 8;
 	public static final MAX_STACK_GROW:Int = 32;
 
-	public var stack:Array<Dynamic> = #if cpp NativeArray.create(DEFAULT_STACK_SIZE) #else [for (i in 0...DEFAULT_STACK_SIZE) null] #end;
+	#if cpp
+	public var stack = NativeArray.create(DEFAULT_STACK_SIZE);
+	#else
+	public var stack:Array<Dynamic> = [for (i in 0...DEFAULT_STACK_SIZE) null];
+	#end
 	public var stackTop:Int = 0;
 
 	public inline function push(v:Dynamic) {
