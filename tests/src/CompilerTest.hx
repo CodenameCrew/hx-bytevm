@@ -9,9 +9,12 @@ class CompilerTest {
 	public static function main() {
 		Sys.println(Util.getTitle("COMPILER TESTING"));
 
-		run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
-		run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
+		// run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
+		// run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
 		// run(InterpTest.FIBBONACCI_FUNCTION_RECURSIVE, "FIBBONACCI_FUNCTION_RECURSIVE");
+		run(InterpTest.TEST_FUNCTION, "TEST FUNCTION");
+
+		// run(InterpTest.FUNCTION_RECURSIVE, "FUNCTION RECURSIVE");
 	}
 
 

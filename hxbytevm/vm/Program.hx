@@ -9,8 +9,13 @@ typedef ProgramFunc = {
 	var instructions:Array<OpCode>;
 	var read_only_stack:Array<StackValue>;
 
-	var defaultArgs:Array<Dynamic>;
+	var args:Array<Variable>;
 	var depth:Int;
+}
+
+enum Variable {
+	Defined(v:Dynamic);
+	UnDefined;
 }
 
 class Program {
@@ -19,7 +24,6 @@ class Program {
 	public var constant_stack:Array<StackValue>;
 	public var varnames_stack:Array<Array<String>>;
 
-	// share cosntants and vars
 	public var program_funcs:Array<ProgramFunc>;
 	public var func_names:Array<String>;
 
@@ -33,6 +37,7 @@ class Program {
 	}
 
 	public function print() {
+		trace(varnames_stack);
 		if (func_names.length <= 0) return print_bytecode(instructions, read_only_stack);
 		var function_prints:Array<String> = [
 			for (i in 0...func_names.length)
@@ -42,7 +47,7 @@ class Program {
 		var result:String = print_bytecode(instructions, read_only_stack, "", 8);
 		result += '\n${StringUtils.getTitle('FUNCTIONS (${function_prints.length}):', headerLength+8)}\n';
 		for (i => func_name in func_names) {
-			result += '-   FUNCTION: $func_name ($i) BYTE CODE:';
+			result += '-   FUNCTION: $func_name ($i, D: ${program_funcs[i].depth}) BYTE CODE:';
 			result += '\n${function_prints[i]}\n';
 		}
 
@@ -81,7 +86,7 @@ class Program {
 				case PUSHV_D | SAVE_D:
 					var d = get_rom();
 					var v_id = get_rom();
-					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)');
+					prints[4].push(varnames_stack.length < d && varnames_stack[d] != null ? 'VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)' : 'VAR_ID:    $v_id  (D: $d)');
 				case PUSHC:
 					var c_id = get_rom();
 					var const = constant_stack[c_id];

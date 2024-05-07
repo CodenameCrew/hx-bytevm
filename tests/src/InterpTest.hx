@@ -191,14 +191,29 @@ class InterpTest {
 			}, false),
 			{
 				//var ?params : Array<TypeParam>;
-				args : [],
+				args : [
+					{
+						name : {
+							string : "awesome",
+							pos: {
+								min : 0,
+								max : 0,
+								file : "InterpTest.hx",
+							}
+						},
+						opt : false,
+						meta: null,
+						type: CTPath({ path: { pack: [], name: "String", params: [], sub: "" }, pos_full: { min: 0, max: 0, file: "InterpTest.hx" }, pos_path: { min: 0, max: 0, file: "InterpTest.hx" } }),
+						value: mk(EConst(CString("default", SSingleQuotes))),
+					}
+				],
 				expr: mk(EBlock([
 					mk(ECall(mk(EConst(CIdent("trace"))), [
-						mk(EConst(CString("Hello World", SSingleQuotes)))
+						mk(EBinop(BOpAdd, mk(EConst(CString("Hello World", SSingleQuotes))), mk(EConst(CIdent("awesome")))))
 					]))
 				]))}
 		)));
-		block.push(mk(ECall(mk(EConst(CIdent("test"))),[])));
+		block.push(mk(ECall(mk(EConst(CIdent("test"))), [mk(EConst(CString(" Cool arguement", SSingleQuotes)))])));
 		mk(EBlock(block));
 	};
 
