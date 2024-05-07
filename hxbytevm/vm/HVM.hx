@@ -88,7 +88,7 @@ class HVM {
 
 	public inline function get_rom():Dynamic {
 		if (func_id != -1) {
-			var ret = program.func_read_only_stack[func_id][frp];
+			var ret = func_rom[frp];
 			frp++; return ret;
 		}
 		var ret = rom[rp];
@@ -284,6 +284,9 @@ class HVM {
 		return null;
 	}
 
+	var func_instructions:Array<OpCode>;
+	var func_rom:Array<Dynamic>;
+
 	var func_pointers:Array<Pointer>;
 	var func_ids:Array<Int>;
 
@@ -303,6 +306,7 @@ class HVM {
 			else {
 				// return to last func
 				func_id = old_func;
+				__updateFuncStacks();
 
 				fip = pointer.ip;
 				frp = pointer.rp;
@@ -320,7 +324,7 @@ class HVM {
 		func_id = func;
 
 		// do instructions
-		var func_instructions = program.func_instructions[func_id];
+		__updateFuncStacks();
 		while (fip <= func_instructions.length-1) {
 			switch (func_instructions[fip]) {
 				case RET: end_call(); return;
@@ -329,5 +333,10 @@ class HVM {
 		}
 
 		end_call();
+	}
+
+	public inline function __updateFuncStacks() {
+		func_instructions = program.program_funcs[func_id].instructions;
+		func_rom = program.program_funcs[func_id].read_only_stack;
 	}
 }

@@ -178,6 +178,30 @@ class InterpTest {
 		mk(EBlock(block));
 	};
 
+	public static var TEST_FUNCTION = {
+		var block = [];
+		block.push(mk(EFunction(
+			FNamed({
+				string : "test",
+				pos: {
+					min : 0,
+					max : 0,
+					file : "InterpTest.hx",
+				}
+			}, false),
+			{
+				//var ?params : Array<TypeParam>;
+				args : [],
+				expr: mk(EBlock([
+					mk(ECall(mk(EConst(CIdent("trace"))), [
+						mk(EConst(CString("Hello World", SSingleQuotes)))
+					]))
+				]))}
+		)));
+		block.push(mk(ECall(mk(EConst(CIdent("test"))),[])));
+		mk(EBlock(block));
+	};
+
 	public static function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
 		if(pos == null) pos = {
 			min : 0,
@@ -199,8 +223,11 @@ class InterpTest {
 		// Sys.println(Util.getTitle("FIBBONACCI TEST"));
 		// run(FIBBONACCI_FUNCTION_RECURSIVE);
 
-		Sys.println(Util.getTitle("FUNCTION RECURSIVE"));
-		run(FUNCTION_RECURSIVE);
+		// Sys.println(Util.getTitle("FUNCTION RECURSIVE"));
+		// run(FUNCTION_RECURSIVE);
+
+		Sys.println(Util.getTitle("FUNCTION TEST"));
+		run(TEST_FUNCTION);
 	}
 
 	public static function run( e : Expr ) {

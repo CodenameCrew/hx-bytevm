@@ -5,6 +5,14 @@ import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
 
+typedef ProgramFunc = {
+	var instructions:Array<OpCode>;
+	var read_only_stack:Array<StackValue>;
+
+	var defaultArgs:Array<Dynamic>;
+	var depth:Int;
+}
+
 class Program {
 	public var instructions:Array<OpCode>;
 	public var read_only_stack:Array<StackValue>;
@@ -12,17 +20,15 @@ class Program {
 	public var varnames_stack:Array<Array<String>>;
 
 	// share cosntants and vars
-	public var func_instructions:Array<Array<OpCode>>;
-	public var func_read_only_stack:Array<Array<StackValue>>;
+	public var program_funcs:Array<ProgramFunc>;
 	public var func_names:Array<String>;
 
-	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, func_instructions:Array<Array<OpCode>>, func_read_only_stack:Array<Array<StackValue>>, func_names:Array<String>) {
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, program_funcs:Array<ProgramFunc>, func_names:Array<String>) {
 		this.instructions = instructions;
 		this.read_only_stack = read_only_stack;
 		this.constant_stack = constant_stack;
 		this.varnames_stack = varnames_stack;
-		this.func_instructions = func_instructions;
-		this.func_read_only_stack = func_read_only_stack;
+		this.program_funcs = program_funcs;
 		this.func_names = func_names;
 	}
 
@@ -30,7 +36,7 @@ class Program {
 		if (func_names.length <= 0) return print_bytecode(instructions, read_only_stack);
 		var function_prints:Array<String> = [
 			for (i in 0...func_names.length)
-				print_bytecode(func_instructions[i], func_read_only_stack[i], '\t')
+				print_bytecode(program_funcs[i].instructions, program_funcs[i].read_only_stack, '\t')
 		];
 
 		var result:String = print_bytecode(instructions, read_only_stack, "", 8);
@@ -96,6 +102,9 @@ class Program {
 					prints[4].push('A_ID:  ${array_i}, I_ID:  ${array_r}');
 				case ARRAY_STACK: prints[4].push('SIZE:      ${get_rom()}');
 				case STK_OFF: prints[4].push('OFFSET:  ${get_rom()}');
+				case LOCAL_CALL:
+					var func_id = get_rom();
+					prints[4].push('FUNCTION:  ${func_id}  (${func_names[func_id]})');
 				default: prints[4].push("-");
 			}
 		}
@@ -196,6 +205,6 @@ class Program {
 	}
 
 	public inline static function createEmpty():Program {
-		return new Program([], [], [], [], [], [], []);
+		return new Program([], [], [], [], [], []);
 	}
 }

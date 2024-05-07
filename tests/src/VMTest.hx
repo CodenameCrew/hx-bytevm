@@ -9,8 +9,7 @@ class VMTest {
 		[0, 1],
 		[2, 5],
 		[[]],
-		[[]],
-		[[]],
+		[],
 		[]
 	);
 
@@ -19,8 +18,7 @@ class VMTest {
 		[0],
 		[2],
 		[[]],
-		[[]],
-		[[]],
+		[],
 		[]
 	);
 
@@ -29,8 +27,7 @@ class VMTest {
 		[0, 1, 8, 6, "YEAH :D", 9, 7, "NAH :("],
 		[2, 8],
 		[[]],
-		[[]],
-		[[]],
+		[],
 		[]
 	);
 
@@ -39,8 +36,7 @@ class VMTest {
 		[function_test, 0, 2],
 		[2],
 		[[]],
-		[[]],
-		[[]],
+		[],
 		[]
 	);
 
@@ -49,8 +45,7 @@ class VMTest {
 		[0, 0, Sys.println, 2, 0, 1, 0, 0, 0, 1, 3, 1],
 		[0, 10, "DO WHILE LOOP (i):  "],
 		[["i"]],
-		[[]],
-		[[]],
+		[],
 		[]
 	);
 
@@ -59,8 +54,14 @@ class VMTest {
 		[0, 0],
 		[2],
 		[["just here for not crashing lmao -lunar"], ["just here for not crashing lmao -lunar"]],
-		[[PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL]],
-		[[function_test, 0, 2]],
+		[{
+			depth: 0,
+			defaultArgs: [],
+
+			instructions: [PUSH, PUSHC, PUSH_TRUE, ARRAY_STACK, CALL],
+			read_only_stack: [function_test, 0, 2],
+
+		}],
 		["test_call"]
 	);
 
@@ -69,8 +70,14 @@ class VMTest {
 		[0, 0, 1, 0],
 		[2, 10],
 		[["test_call"], ["int", "bool"]],
-		[[SAVE, SAVE, PUSH, PUSHV, PUSHV, ARRAY_STACK, CALL, POP]],
-		[[1, 0, function_test, 0, 1, 2]],
+		[{
+			depth: 0,
+			defaultArgs: [],
+
+			instructions: [SAVE, SAVE, PUSH, PUSHV, PUSHV, ARRAY_STACK, CALL, POP],
+			read_only_stack: [1, 0, function_test, 0, 1, 2],
+
+		}],
 		["test_call"]
 	);
 
