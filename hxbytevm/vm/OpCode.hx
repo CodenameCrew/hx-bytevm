@@ -68,4 +68,6 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 
 	var DUP:OpCode; // 0 ROM SPACE: duplicates stack[stacktop], pushing it to stack
 	var STK_OFF:OpCode; // 1 ROM SPACE: gets stack[stacktop+ROM1], pushing it to stack
+
+	var LOCAL_CALL:OpCode; // 1 ROM SPACE: the id of the function that gets called
 }

@@ -5,24 +5,48 @@ import hxbytevm.utils.StringUtils;
 
 typedef StackValue = Dynamic;
 
-typedef ProgramFunc = {};
-
 class Program {
 	public var instructions:Array<OpCode>;
 	public var read_only_stack:Array<StackValue>;
 	public var constant_stack:Array<StackValue>;
 	public var varnames_stack:Array<Array<String>>;
 
-	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>) {
+	// share cosntants and vars
+	public var func_instructions:Array<Array<OpCode>>;
+	public var func_read_only_stack:Array<Array<StackValue>>;
+	public var func_names:Array<String>;
+
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, func_instructions:Array<Array<OpCode>>, func_read_only_stack:Array<Array<StackValue>>, func_names:Array<String>) {
 		this.instructions = instructions;
 		this.read_only_stack = read_only_stack;
 		this.constant_stack = constant_stack;
 		this.varnames_stack = varnames_stack;
+		this.func_instructions = func_instructions;
+		this.func_read_only_stack = func_read_only_stack;
+		this.func_names = func_names;
 	}
 
 	public function print() {
+		if (func_names.length <= 0) return print_bytecode(instructions, read_only_stack);
+		var function_prints:Array<String> = [
+			for (i in 0...func_names.length)
+				print_bytecode(func_instructions[i], func_read_only_stack[i], '\t')
+		];
+
+		var result:String = print_bytecode(instructions, read_only_stack, "", 8);
+		result += '\n${StringUtils.getTitle('FUNCTIONS (${function_prints.length}):', headerLength+8)}\n';
+		for (i => func_name in func_names) {
+			result += '-   FUNCTION: $func_name ($i) BYTE CODE:';
+			result += '\n${function_prints[i]}\n';
+		}
+
+		return result;
+	}
+
+	public var headerLength:Int = 0;
+	public function print_bytecode(instructions:Array<OpCode>, read_only_memory:Array<StackValue>, ?lineprefix:String = "", ?extraHeading:Int = 0):String {
 		var prints:Array<Array<String>> = [["IP"], ["RP"], ["D"], ["CODE"], ["ROM"]];
-		var printsSizes:Array<Int> = [0, 0, 0];
+		var printsSizes:Array<Int> = [0, 0, 0, 0, 0];
 
 		var dp:Int = 0;
 		var rp:Int = 0;
@@ -88,10 +112,12 @@ class Program {
 				prints[i][p] += FastUtils.repeatString(" ", (printsSizes[i] - prints[i][p].length));
 			}
 
-		var header:String = ' ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].shift() : ""}';
-		var result:String = '${StringUtils.getTitle("BYTE CODE:", header.length)}\n$header\n${FastUtils.repeatString("-", header.length)}\n';
+		var header:String = '$lineprefix ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].shift() : ""}';
+		if (header.length > headerLength)
+			headerLength = header.length;
+		var result:String = '$lineprefix${StringUtils.getTitle("BYTE CODE:", headerLength+extraHeading)}\n$lineprefix$header\n$lineprefix${FastUtils.repeatString("-", headerLength+extraHeading)}\n';
 		for (i in 0...instructions.length)
-			result += ' ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n';
+			result += '$lineprefix ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n';
 
 		return result;
 	}
@@ -164,10 +190,12 @@ class Program {
 			case NGBITS: "NGBITS";
 			case DUP: "DUP";
 			case STK_OFF: "STK_OFF";
+
+			case LOCAL_CALL: "LOCAL_CALL";
 		}
 	}
 
 	public inline static function createEmpty():Program {
-		return new Program([], [], [], []);
+		return new Program([], [], [], [], [], [], []);
 	}
 }

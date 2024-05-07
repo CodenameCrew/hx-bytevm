@@ -1,5 +1,6 @@
 package hxbytevm.vm;
 
+import hxbytevm.compiler.Compiler.Pointer;
 import hxbytevm.core.Ast.Func;
 import hxbytevm.core.Ast.FunctionKind;
 import hxbytevm.utils.UnsafeReflect;
@@ -14,8 +15,8 @@ class HVM {
 	var rom:Array<Dynamic>;
 
 	// pointers
-	var ip:Int = 0;
-	var rp:Int = 0;
+	var ip:Int;
+	var rp:Int;
 
 	@:noCompletion public var _varnames:Array<Array<String>> = [[]];
 	@:noCompletion public var _variables:Array<Array<Dynamic>> = [[]];
@@ -41,6 +42,9 @@ class HVM {
 		rom = [];
 
 		ret = null;
+
+		func_pointers = []; func_ids = [];
+		func_id = -1; fip = 0; frp = 0;
 	}
 
 	public function load(program:Program) {
@@ -75,7 +79,6 @@ class HVM {
 		if (program != null) load(program);
 
 		while (ip <= instructions.length-1) {
-			// trace(ip, rp, program.print_opcode(instructions[ip]), stack, stack.stackTop);
 			instruction(instructions[ip]);
 			ip++;
 		}
@@ -84,13 +87,28 @@ class HVM {
 	}
 
 	public inline function get_rom():Dynamic {
+		if (func_id != -1) {
+			var ret = program.func_read_only_stack[func_id][frp];
+			frp++; return ret;
+		}
 		var ret = rom[rp];
 		rp++; return ret;
 	}
 
+	public inline function _jump(nip:Int, nrp:Int) {
+		if (func_id != -1) {
+			fip = nip; frp = nrp;
+		} else {
+			ip = nip; rp = nrp;
+		}
+	}
+
+	public inline function _cleardepth()
+		_variables[depth] = cast new haxe.ds.Vector<Dynamic>(_variables[depth].length);
+
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
-		switch (instructions[ip]) {
+		switch (instruction) {
 			case PUSH:
 				stack.push(get_rom());
 			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx
@@ -109,22 +127,24 @@ class HVM {
 				_variables[d][v_id] = stack.pop();
 			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
-			case DEPTH_DNC: depth--;
+			case DEPTH_DNC:
+				if (depth != 0) _cleardepth();
+				depth--;
 			case JUMP:
 				var r = get_rom();
 				var i = get_rom();
-				rp = r; ip = i - 1;
+				_jump(r, i-1);
 			case JUMP_COND:
 				var r = get_rom();
 				var i = get_rom();
 				if (stack.pop() == true) {
-					rp = r; ip = i - 1;
+					_jump(r, i-1);
 				}
 			case JUMP_N_COND:
 				var r = get_rom();
 				var i = get_rom();
 				if (stack.pop() == false) {
-					rp = r; ip = i - 1;
+					_jump(r, i-1);
 				}
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
 				var kind:FunctionKind = cast get_rom();
@@ -259,7 +279,55 @@ class HVM {
 			case STK_OFF:
 				var stacktop = stack.top(get_rom());
 				stack.push(stacktop);
+			case LOCAL_CALL: local_call(get_rom());
 		}
 		return null;
+	}
+
+	var func_pointers:Array<Pointer>;
+	var func_ids:Array<Int>;
+
+	var func_id:Int;
+
+	var fip:Int;
+	var frp:Int;
+
+	public function local_call(func:Int) {
+		inline function end_call() {
+			var pointer = func_pointers.pop();
+			var old_func = func_ids.pop();
+
+			if (func_pointers.length <= 0)
+				// return to regular run() function
+				func_id = -1;
+			else {
+				// return to last func
+				func_id = old_func;
+
+				fip = pointer.ip;
+				frp = pointer.rp;
+			}
+		}
+
+		// backup last func point
+		if (func_id != -1) {
+			func_ids.push(func_id);
+			func_pointers.push(new Pointer(fip, frp));
+		}
+
+		// reset func
+		fip = 0; frp = 0;
+		func_id = func;
+
+		// do instructions
+		var func_instructions = program.func_instructions[func_id];
+		while (fip <= func_instructions.length-1) {
+			switch (func_instructions[fip]) {
+				case RET: end_call(); return;
+				default: instruction(func_instructions[fip]); fip++;
+			}
+		}
+
+		end_call();
 	}
 }
