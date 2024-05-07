@@ -3,9 +3,10 @@
 	"editor.insertSpaces": false,
 	"files.associations": {
 		"*.hx": "haxe",
-		"*.hscript": "haxe", // backwards compatibility
+		"*.hscript": "haxe",
 		"*.hsc": "haxe",
-		"*.hxs": "haxe"
+		"*.hxs": "haxe",
+		"vector": "cpp"
 	},
 	"files.eol": "\n",
 	"files.insertFinalNewline": true,

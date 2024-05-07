@@ -1,6 +1,3 @@
-#ifndef FASTUTILS_EXTERN_CPP
-#define FASTUTILS_EXTERN_CPP 1
-
 #include <hxcpp.h>
 #include <vector>
 
@@ -141,5 +138,3 @@ String repeatString(String str, int times) {
 	//buf[totalLength] = '\0'; // Might not be needed, handled in hx::NewString
 	return String(buf, totalLength);
 }
-
-#endif
