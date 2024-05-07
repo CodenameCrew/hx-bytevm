@@ -103,9 +103,6 @@ class HVM {
 		}
 	}
 
-	public inline function _cleardepth()
-		_variables[depth] = cast new haxe.ds.Vector<Dynamic>(_variables[depth].length);
-
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode):Dynamic {
 		switch (instruction) {
@@ -128,24 +125,21 @@ class HVM {
 			case RET: ret = stack.pop();
 			case DEPTH_INC: depth++;
 			case DEPTH_DNC:
-				if (depth != 0) _cleardepth();
 				depth--;
 			case JUMP:
 				var r = get_rom();
 				var i = get_rom();
-				_jump(r, i-1);
+				_jump(i-1, r);
 			case JUMP_COND:
 				var r = get_rom();
 				var i = get_rom();
-				if (stack.pop() == true) {
-					_jump(r, i-1);
-				}
+				if (stack.pop() == true)
+					_jump(i-1, r);
 			case JUMP_N_COND:
 				var r = get_rom();
 				var i = get_rom();
-				if (stack.pop() == false) {
-					_jump(r, i-1);
-				}
+				if (stack.pop() == false)
+					_jump(i-1, r);
 			case FUNC: // TODO: IMPLEMENT FUNCTIONS
 				var kind:FunctionKind = cast get_rom();
 				var func:Func = cast get_rom();

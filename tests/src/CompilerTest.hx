@@ -8,7 +8,6 @@ import hxbytevm.vm.HVM;
 class CompilerTest {
 	public static function main() {
 		Sys.println(Util.getTitle("COMPILER TESTING"));
-		Sys.println("\n");
 
 		run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
 		run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
@@ -17,11 +16,9 @@ class CompilerTest {
 
 
 	public static function run( e : Expr, name:String) {
-		Sys.println(Util.getTitle(name));
-		Sys.println("\n");
 		Sys.println(Util.getTitle(name + " AST"));
-		Sys.println("\n");
 		Sys.println(hxbytevm.printer.Printer.printExpr(e));
+		Sys.println("\n");
 		var compiler:Compiler = new Compiler();
 		compiler.compile(e);
 
