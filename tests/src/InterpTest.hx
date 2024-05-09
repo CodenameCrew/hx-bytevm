@@ -214,6 +214,7 @@ class InterpTest {
 				]))}
 		)));
 		block.push(mk(ECall(mk(EConst(CIdent("test"))), [mk(EConst(CString(" Cool arguement", SSingleQuotes)))])));
+		block.push(mk(ECall(mk(EConst(CIdent("test"))), [mk(EConst(CString(" Cool arguement 2", SSingleQuotes)))])));
 		mk(EBlock(block));
 	};
 

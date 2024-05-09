@@ -79,8 +79,11 @@ class HVM {
 		if (program != null) load(program);
 
 		while (ip <= instructions.length-1) {
+			trace(program.print_opcode(instructions[ip]));
 			instruction(instructions[ip]);
 			ip++;
+			trace(ip, instructions.length);
+
 		}
 
 		return ret;
@@ -114,7 +117,9 @@ class HVM {
 				var v_id = get_rom();
 
 				stack.push(_variables[d][v_id]);
-			case PUSHC: stack.push(constants[get_rom()]);
+			case PUSHC:
+				trace("hello?", constants);
+				stack.push(constants[get_rom()]);
 			case POP: stack.pop();
 			case SAVE:
 				_variables[depth][get_rom()] = stack.pop();
@@ -289,9 +294,12 @@ class HVM {
 	var frp:Int;
 
 	public function local_call(func:Int) {
+		trace(func);
 		inline function end_call() {
 			var pointer = func_pointers.pop();
 			var old_func = func_ids.pop();
+
+			trace("end");
 
 			if (func_pointers.length <= 0)
 				// return to regular run() function
@@ -320,7 +328,7 @@ class HVM {
 		__updateFuncStacks();
 		while (fip <= func_instructions.length-1) {
 			switch (func_instructions[fip]) {
-				case RET: end_call(); return;
+				case RET: fip++; end_call(); return;
 				default: instruction(func_instructions[fip]); fip++;
 			}
 		}

@@ -44,4 +44,6 @@ String combineString(String a, String b, String c, String d, String e, String f,
 
 String repeatString(String str, int times);
 
+int parse_int_throw(String inString);
+
 #endif

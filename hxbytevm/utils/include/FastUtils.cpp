@@ -1,5 +1,7 @@
 #include <hxcpp.h>
+#include <hx/CFFI.h>
 #include <vector>
+#include <limits.h>
 
 String _combineStringFast(const std::vector<String>& inArray) {
 	int len = 0;
@@ -157,4 +159,55 @@ String repeatString(String str, int times) {
 
 	//buf[totalLength] = '\0'; // Might not be needed, handled in hx::NewString
 	return String(buf, totalLength);
+}
+
+bool willOverflowSigned(long value) {
+    return value < INT_MIN || value > INT_MAX;
+}
+
+bool willOverflowUnsigned(unsigned long value) {
+    return value > UINT_MAX;
+}
+
+int parse_int_throw(String inString)
+{
+	if (!inString.raw_ptr())
+		return hx::Throw(HX_CSTRING("Cant parse null")) - 1;
+
+	const char *str = inString.utf8_str(NULL);
+	while (isspace(*str)) ++str;
+
+	int sign = 1, base = 10;
+	bool checkSigned = true;
+
+	if(*str == '-' || *str == '+') {
+		sign = *str == '-' ? -1 : 1;
+		str++;
+	}
+
+	if(*str == '0') {
+		checkSigned = false;
+		switch (str[1]) {
+			case 'x': case 'X': base = 16; break;
+			case 'o': case 'O': base = 8; break;
+			case 'b': case 'B': base = 2; break;
+			case 'u': case 'U': break;
+			default: checkSigned = true; break;
+		}
+
+		if(!checkSigned) str += 2; // skip the '0' and the base
+	}
+
+	char *end = 0;
+	long result = strtol(str, &end, base);
+
+	if(end == str)
+		return hx::Throw(HX_CSTRING("Didnt parse the entire string")) - 1;
+
+	if(willOverflowUnsigned(result))
+		return hx::Throw(HX_CSTRING("Overflow")) - 1;
+
+	if(sign < 0)
+		result = -result;
+	return result;
 }

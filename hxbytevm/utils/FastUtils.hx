@@ -42,6 +42,7 @@ package hxbytevm.utils;
 	@:native('combineString') public static function combineString16(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String, o:String, p:String):String;
 
 	@:native('repeatString') public static function repeatString(str:String, times:Int):String;
+	@:native('parse_int_throw') public static function parseIntLimit(str:String):Int;
 	#else
 	@:pure public static inline function combineStringFast1(a:String):String return _combineString(a);
 	@:pure public static inline function combineStringFast2(a:String, b:String):String return _combineString(a,b);
@@ -89,6 +90,10 @@ package hxbytevm.utils;
 		for(i in 0...times)
 			buf.add(str);
 		return buf.toString();
+	}
+
+	@:pure public static function parseIntLimit(str:String):Int { // TODO: make this work
+		return Std.parseInt(str);
 	}
 	#end
 }

@@ -50,4 +50,15 @@ class ExprUtils {
 			ExprUtils.recursive(e, f);
 		});
 	}
+
+	public static function fieldToList( field : Expr, _arr : Array<String> = null ) : Array<String> {
+		if (_arr == null) _arr = [];
+		if (field == null) return _arr;
+		switch( field.expr ) {
+			case EField(e, name, _): fieldToList(e, _arr); _arr.push(name);
+			case EConst(CIdent(value)): _arr.push(value);
+			default: throw Errors.Exit;
+		}
+		return _arr;
+	}
 }

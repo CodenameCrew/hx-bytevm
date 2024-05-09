@@ -130,6 +130,18 @@ typedef TypePath = {
 	var sub : String ;
 }
 
+class AstUtils {
+	public static final nullPos:Pos = { min: -1, max: -1, file: "?" };
+
+	public static inline function punion(p1:Pos, p2:Pos):Pos {
+		return {
+			min: p1.min < p2.min ? p1.min : p2.min,
+			max: p1.max > p2.max ? p1.max : p2.max,
+			file: p1.file
+		}
+	}
+}
+
 typedef Pos = {
 	var min : Int ;
 	var max : Int ;
