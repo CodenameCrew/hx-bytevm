@@ -32,9 +32,8 @@ class Stream<T> {
 	}
 
 	public function peek():Option<T> {
-		if (curr == None) {
+		if (curr == None)
 			curr = func(count);
-		}
 
 		return curr;
 	}
@@ -84,12 +83,11 @@ class CacheStream<T> extends Stream<T> {
 	public function match(...args:T):Bool {
 		store();
 		for (arg in args) {
-			if (arg != null && !CompareUtils.deepEqual(stream.peek(), Some(arg))) {
+			if (arg != null && !CompareUtils.deepEqual(peek(), Some(arg))) {
 				restore();
 				return false;
-			} else {
-				stream.junk();
 			}
+			stream.junk();
 		}
 		discard();
 		return true;

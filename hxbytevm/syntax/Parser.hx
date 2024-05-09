@@ -298,31 +298,27 @@ class Parser {
 	//	return tks;
 	//}
 
-	private function parseComplexType():ComplexType {
+	private inline function parseComplexType():ComplexType {
 		return ComplexTypeParser.giveType(s);
 	}
 
 	private function parseTypedef(mode:TypeDeclMode, meta:Metadata = null, ?access:Array<AccessFlags>, ?doc:Documenation = null):TypeDecl {
 		assert(s.last() == TKwd(KTypedef));
 
-		switch(s.peek().get(TEof)) {
-			case TKwd(KTypedef):
-				s.junk();
-				var name = parsePlacedName();
-				var params = [];//parseTypeParams();
-				trace("TODO: implement type params");
-				var type = parseComplexType();
-				return ETypedef({
-					d_name: name,
-					d_doc: doc,
-					d_params: params,
-					d_meta: meta,
-					d_flags: [], //access,
-					d_data: type
-				});
-			default:
-		}
-		throw "Expected typedef, got " + s.last();
+		s.junk();
+		var name = parsePlacedName();
+		var params = [];//parseTypeParams();
+		trace("TODO: implement type params");
+		var type = parseComplexType();
+		return ETypedef({
+			d_name: name,
+			d_doc: doc,
+			d_params: params,
+			d_meta: meta,
+			d_flags: [], //access,
+			d_data: type
+		});
+		//throw "Expected typedef, got " + s.last();
 	}
 
 	private static function unsupported_decl_flag<T>(flag:DeclFlag, pos:Pos, type:String):Option<T> {

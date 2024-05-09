@@ -244,7 +244,7 @@ class LexerImpl {
 		}
 	}
 
-	public function parseSingleComment(s:String):Token {
+	public function parseSingleComment():Token {
 		pos += 2; // to skip the //
 		var str = new FastStringBuf();
 		while (pos < input.length) {
@@ -263,7 +263,7 @@ class LexerImpl {
 		return TCommentLine(str.toString());
 	}
 
-	public function parseBlockComment(s:String):Token {
+	public function parseBlockComment():Token {
 		pos += 2; // to skip the /*
 		var start = pos;
 		var startLine = line;
@@ -546,8 +546,8 @@ class LexerImpl {
 			[re(START, Basic(INTEGER), Basic(FLOAT_SUFFIX)), (s) -> split_float_suffix(s)],
 			[re(START, Str("\\."), Plus(INT_DIGITS), Opt(FLOAT_SUFFIX)), (s) -> split_float_suffix(s)],
 
-			["//", (s) -> parseSingleComment(s)], // Single line comment
-			["/*", (s) -> parseBlockComment(s)], // TODO: maybe make this use a regex instead
+			["//", () -> parseSingleComment()], // Single line comment
+			["/*", () -> parseBlockComment()], // TODO: maybe make this use a regex instead
 
 			["~/", () -> parseRegex()],
 
