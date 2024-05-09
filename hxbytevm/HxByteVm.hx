@@ -2,6 +2,12 @@ package hxbytevm;
 
 import hxbytevm.core.Ast;
 
+typedef Test = {
+	var name : String;
+	var code : String;
+}
+
+@meta(hxbytevm.utils.MacroUtils.makeConstructor)
 class HxByteVm {
 	private var _basePath : String;
 	private var _debug : Bool;
@@ -21,8 +27,9 @@ class HxByteVm {
 	#end
 
 	public function loadString( code : String ) {
-		var tokens = hxbytevm.syntax.Lexer.parse( code );
-		_ast = new hxbytevm.syntax.Parser().parse( tokens );
+		var typeDecls = hxbytevm.syntax.Parser.parseFile( code );
+		//var tokens = hxbytevm.syntax.Lexer.parse( code );
+		//new hxbytevm.syntax.Parser(tokens).pa();
 		_loaded = true;
 	}
 

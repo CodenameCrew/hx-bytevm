@@ -1,10 +1,10 @@
 package hxbytevm.syntax;
 
+import hxbytevm.utils.Errors;
 import haxe.ds.Option;
 import hxbytevm.utils.enums.Result;
 import hxbytevm.core.Token;
 import hxbytevm.utils.Stream;
-import hxbytevm.syntax.Lexer;
 import hxbytevm.core.Ast;
 
 using hxbytevm.utils.HelperUtils;
@@ -16,25 +16,10 @@ enum TypeDeclMode {
 }
 
 class Parser {
-	public var s:Stream<Token>;
-	var cache:TokenCache;
+	public var s:StreamCacheAccessor<Token>;
 
 	public function new(s : Stream<Token>) {
-		this.s = s;
-	}
-
-	function lastToken():Token {
-		if(cache.length == 0)
-			return s.peek().get();
-		return cache.get(cache.length - 1);
-	}
-
-	function nextToken():Token {
-		return switch s.peek() { // TODO: position
-			//case Some(TEof): TEof;
-			case Some(tk): tk;
-			case None: TEof;
-		}
+		this.s = new CacheStream(s);
 	}
 
 	/*public static function parseExprFromTokens(tokens : Array<Token>) : Expr {
@@ -98,13 +83,15 @@ class Parser {
 	}
 
 	private function semicolon():Pos {
-		if(lastToken() == TBrClose) {
+		if(s.last() == TBrClose) {
 			return switch s.peek() {
 				case Some(TSemicolon): AstUtils.nullPos; //p;
 				default: AstUtils.nullPos; // snd (last_token s)
 			}
 		} else {
-			return switch s.peek() {
+			var tk = s.peek();
+			s.junk();
+			return switch tk {
 				case Some(TSemicolon): AstUtils.nullPos; //p;
 				case Some(tk): throw "Expected ';', got " + tk; // syntax_error Missing_semicolon s (next_pos s)
 				default: AstUtils.nullPos; // Should allow for a missing ; at the end of the file
@@ -117,8 +104,10 @@ class Parser {
 		var tk = s.peek().get(TEof);
 		switch(tk) {
 			case TKwd(KPackage):
-				s.next(); // Move past the package keyword
+				s.junk(); // skip package
 				var pack = parsePackageName();
+
+				trace(pack);
 
 				var psem = semicolon();
 				var typeDecls = parseTypeDecls(TCAfterImport, psem.max, pack, []);
@@ -130,18 +119,186 @@ class Parser {
 		}
 	}
 
-	public function parseTypeDecls(mode:TypeDeclMode, max, pack:Array<String>, typeDecls:Array<TypeDecl>):Array<TypeDecl> {
+	public function parseTypeDecls(mode:TypeDeclMode, max:Int, pack:Array<String>, typeDecls:Array<TypeDecl>):Array<TypeDecl> {
 		var decls = [];
-		var cff:Option<TypeDecl> = switch s.peek().get(TEof) {
+		var cff:ResultOption<TypeDecl, Errors> = switch s.peek().get(TEof) {
 			case TEof: None;
-			default: parseTypeDecl(mode).toOption();
+			default:
+				try {
+					Ok(parseTypeDecl(mode));
+				} catch(e:Errors) {
+					Err(e);
+				}
 		}
 
-		return decls;
+		switch(cff) {
+			case Ok(cf):
+				//var mode = switch(cf) {
+				//	case EImport(_) | EUsing(_): TCAfterImport;
+				//	default: TCAfterType;
+				//}
+
+				//var max = p.max;
+
+				decls.push(cf);
+				return parseTypeDecls(mode, max, pack, decls);
+			case Err(e):
+				var pos = AstUtils.nullPos;
+				var err = switch e {
+					case Msg(""):
+						var nextTk = s.next();
+						//pos = nextTk.pos;
+						Errors.UnexpectedToken(nextTk);
+
+					case Msg(msg):
+						Errors.StreamError(msg);
+					default: throw "Unknown error: " + e;
+				}
+
+				trace(Errors.SyntaxError(err, pos)); // todo: throw?
+
+				//ignore(resume false false s);
+				//parse_type_decls mode (last_pos s).pmax pack acc s
+				var max = AstUtils.nullPos; //s.last().pos.max;
+				parseTypeDecls(mode, max.max, pack, decls);
+			case None:
+				return decls;
+		}
+
+		return null;
+	}
+
+	public function expect(ctk:Token) {
+		var tk = s.peek().get(TEof);
+		if(!Type.enumEq(tk, ctk)) {
+			throw "Expected " + ctk + ", got " + s.last();
+		}
+		s.junk();
+	}
+
+	private function parse_access_flags():Array<AccessFlags> {
+		var accs = [];
+		while(true) {
+			accs.push(switch(s.peek().get(TEof)) {
+				case TKwd(KPrivate): s.junk(); APrivate;
+				case TKwd(KExtern): s.junk(); AExtern;
+				case TKwd(KFinal): s.junk(); AFinal;
+				case TKwd(KMacro): s.junk(); AMacro;
+				case TKwd(KDynamic): s.junk(); ADynamic;
+				case TKwd(KInline): s.junk(); AInline;
+				case TKwd(KPublic): s.junk(); APublic;
+				case TKwd(KStatic): s.junk(); AStatic;
+				case TKwd(KOverload): s.junk(); AOverload;
+				default: break;
+			});
+		}
+		return accs;
+	}
+
+	private function parse_meta_entry():MetadataEntry {
+		var tk = s.peek().get(TEof);
+		switch(tk) {
+			// TODO: add support for @:meta
+			case TConst(CIdent(st)):
+				s.junk();
+				var args = switch(s.peek().get(TEof)) {
+					case TPOpen:
+						s.junk();
+						var args = [];
+						while(true) {
+							var tk = s.peek().get(TEof);
+							if(tk == TEof)
+								throw "Expected expression, got " + tk;
+							if(tk == TPClose)
+								break;
+							s.junk();
+							args.push(parseExpr());
+						}
+						args;
+					default: [];
+				}
+
+				expect(TPClose);
+
+				var pos = AstUtils.nullPos; // punion(p1,p)
+
+				if(args.length == 0)
+					return { name: st, pos: pos };
+				return { name: st, params: args, pos: pos};
+			default:
+				return null;
+		}
+	}
+
+	private function parse_meta():Metadata {
+		var meta:Metadata = [];
+		while(true) {
+			var tk = s.peek().get(TEof);
+			if(tk == TEof) break;
+			switch(tk) {
+				case TAt:
+					s.junk();
+					var entry = parse_meta_entry();
+					if(entry == null)
+						throw "Expected metadata entry, got " + s.last();
+					meta.push(entry);
+				default:
+					break;
+			}
+		}
+
+		return meta;
+	}
+
+	private function parseTypedef(mode:TypeDeclMode, meta:Metadata = null, ?access:Array<AccessFlags>, ?doc:Documenation = null):TypeDecl {
+		/*switch(s.peek().get(TEof)) {
+			case TKwd(KTypedef):
+				s.junk();
+				var name = parsePlacedName();
+				var params = parseTypeParams();
+				var type = parseComplexType();
+				return ETypedef({
+					d_name: name,
+					d_doc: doc,
+					d_params: params,
+					d_meta: meta,
+					d_flags: [], //access,
+					d_data: type
+				});
+			default:
+				return null;
+		}*/
+		return null;
 	}
 
 	private function parseTypeDecl(mode:TypeDeclMode):TypeDecl {
-		return null;
+		switch(s.peek().get(TEof)) {
+			case TKwd(KImport):
+				return parseImport();
+			case TKwd(KUsing):
+				throw "Not implemented";
+			default:
+				//var doc = get_doc();
+				var meta = parse_meta();
+				var access = parse_access_flags();
+
+				trace("Parsed meta: " + meta);
+				trace("Parsed access: " + access);
+
+				switch(s.last()) {
+					//case TKwd(KClass) | TKwd(KInterface):
+					//	return parseClass(mode);
+					//case TKwd(KEnum):
+					//	return parseEnum(mode);
+					//case TKwd(KTypedef):
+					//	return parseTypedef(mode);
+					//case TKwd(KAbstract):
+					//	return parseAbstract(mode);
+					default:
+						throw "Expected type declaration, got " + s.last();
+				}
+		}
+		throw "Not implemented";
 	}
 
 	private static function lowerIdentOrMacro(tk:Token):String {
@@ -155,23 +312,80 @@ class Parser {
 	}
 
 	private function parsePackageName():Array<String> {
-		return switch (s.peek().get(TEof)) {
-			case TKwd(KPackage):
-				s.next(); // skip package
-				var tks = [];
-				while(true) {
-					var tk = s.next();
-					if(tk == TSemicolon) break;
-					if(tk == TDot) continue;
+		var tks = [];
+		while(true) {
+			var tk = s.peek().get(TEof);
+			if(tk == TEof)
+				throw "Expected package name, got " + tk;
+			if(tk == TSemicolon) break;
+			s.junk();
+			if(tk == TDot) continue;
 
-					var tr = lowerIdentOrMacro(tk);
-					if(tr == null)
-						throw "Package name must start with a lowercase character";
-					tks.push(tr);
-				}
-				tks;
-			default: [];
+			var tr = lowerIdentOrMacro(tk);
+			if(tr == null)
+				throw "Package name must start with a lowercase character on " + tk;
+			tks.push(tr);
 		}
+		return tks;
+	}
+
+	private function parseImport():TypeDecl {
+		s.junk();
+		var path:Array<PlacedName> = [];
+		var mode:ImportMode = INormal;
+
+		function loop() {
+			var tk = null;
+			switch(tk = s.peek().get(TEof)) {
+				case TDot:
+					s.junk();
+					switch(tk = s.peek().get(TEof)) {
+						case TConst(CIdent(st)):
+							s.junk();
+							path.push({ string: st, pos: AstUtils.nullPos });
+							loop();
+						case TKwd(KMacro) | TKwd(KExtern) | TKwd(KFunction):
+							s.junk();
+							path.push({ string: lowerIdentOrMacro(tk), pos: AstUtils.nullPos });
+							loop();
+						case TBinop(BOpMult):
+							mode = IAll;
+						default:
+							throw "Expected identifier after '.', got " + tk;
+					}
+				case TConst(CIdent("as")) | TKwd(KIn):
+					s.junk();
+					switch(tk = s.peek().get(TEof)) {
+						case TConst(CIdent(s)):
+							mode = IAsName({
+								string: s,
+								pos: AstUtils.nullPos
+							});
+						default:
+							throw "Expected identifier after 'as', got " + s.last();
+					}
+				default:
+			}
+		}
+
+		var tk = s.peek().get(TEof);
+		switch(tk) {
+			case TConst(CIdent(st)):
+				s.junk();
+				path.push({ string: st, pos: AstUtils.nullPos });
+				loop();
+			default:
+				throw "Expected identifier after 'import', got " + tk;
+		}
+
+		semicolon();
+
+		trace("Parsed import: " + path.map(v->v.string) + " " + mode);
+
+		return EImport(@:fixed {
+			path: path,
+			mode: mode
+		});
 	}
 
 	/*private static function psep<T>(sep:Token, tokens:Array<Token>, f:Token->T):Array<T> {

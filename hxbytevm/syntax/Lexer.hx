@@ -66,18 +66,20 @@ abstract DefineContext(Map<String, Dynamic>) from Map<String, Dynamic> to Map<St
 	}
 }
 
-class Lexer extends Stream<Token> {
+class Lexer extends CacheStream<Token> {
 	public var lexer:LexerImpl = new LexerImpl();
-	public var cache:TokenCache = new TokenCache();
 	public var defines(get, set):DefineContext;
 	public var line(get, set):Int;
 
 	public function new() {
-		super(function(i:Int):Option<Token> {
-			var t = lexer.nextToken();
-			cache.add(t);
-			return Some(t);
-		});
+		super(Stream.create(function(i:Int):Option<Token> {
+			var tk = null;
+			do {
+				tk = lexer.nextToken();
+			} while (tk == null);
+			//trace(tk);
+			return Some(tk);
+		}));
 		lexer.stream = this; // TEMP, TODO: turn Lexer and LexerImpl into a single class
 	}
 
@@ -91,13 +93,6 @@ class Lexer extends Stream<Token> {
 		var lexer = new Lexer();
 		lexer.load(input);
 		return lexer;
-	}
-
-	public function getEntire():Array<Token> {
-		while(!empty()) {
-			next();
-		}
-		return cache.tokens;
 	}
 
 	public override function empty():Bool {
@@ -722,14 +717,11 @@ class LexerImpl {
 			ch = advanceCharDirect();
 		if(StringTools.isEof(ch)) return TEof;
 
-		var t = parseToken(BUFFER_SIZE);
-		//trace(t);
-		switch(t) {
+		switch(parseToken(BUFFER_SIZE)) {
 			case Some(t): return t;
 			default:
 		}
-		var t = parseToken(); // Try again with a entire buffer
-		switch(t) {
+		switch(parseToken()) { // Try again with a entire buffer
 			case Some(t): return t;
 			default:
 		}

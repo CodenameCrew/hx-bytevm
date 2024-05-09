@@ -299,6 +299,10 @@ enum ExprDef {
 class Expr {
 	public var expr: ExprDef;
 	public var pos: Pos;
+
+	public function toString() {
+		return "< " + expr + " >";
+	}
 }
 
 typedef TypeParamDecl = {
@@ -317,7 +321,7 @@ typedef MetadataEntry = {
 
 typedef Metadata = Array<MetadataEntry>;
 
-enum Access {
+enum AccessFlags {
 	APublic;
 	APrivate;
 	AStatic;
@@ -348,7 +352,7 @@ typedef ClassField = {
 	var cff_doc : Documenation ;
 	var cff_pos : Pos ;
 	var cff_meta : Metadata ;
-	var cff_access : Array<Access> ;
+	var cff_access : Array<AccessFlags> ;
 	var cff_kind : ClassFieldKind ;
 }
 
@@ -418,7 +422,7 @@ typedef Definition<F, D> = {
 
 enum ImportMode {
 	INormal;
-	IAsName( as_name : PlacedName );
+	IAsName( asName : PlacedName );
 	IAll;
 }
 
@@ -432,7 +436,7 @@ enum TypeDecl {
 	EEnum( def : Definition<EnumFlag, Array<EnumConstructor>> );
 	ETypedef( def : Definition<TypedefFlag, ComplexType> );
 	EAbstract( def : Definition<AbstractFlag, Array<ClassField>> );
-	EStatic( def : Definition<Access, ClassFieldKind> );
+	EStatic( def : Definition<AccessFlags, ClassFieldKind> );
 	EImport( _import : ImportExpr );
 	EUsing( pack : Array<PlacedName> );
 }

@@ -153,7 +153,7 @@ class Printer {
 	}
 
 	public function printField(field:ClassField) {
-		inline function orderAccess(access:Array<Access>) {
+		inline function orderAccess(access:Array<AccessFlags>) {
 			// final should always be printed last
 			// (does not modify input array)
 			return access.contains(AFinal) ? access.filter(a -> !a.match(AFinal)).concat([AFinal]) : access;
@@ -221,7 +221,7 @@ class Printer {
 			case TPExpr(e): expr(e);
 		}
 
-	@:pure public function printAccess(access:Access)
+	@:pure public function printAccess(access:AccessFlags)
 		return switch (access) {
 			case AStatic: "static";
 			case APublic: "public";

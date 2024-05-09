@@ -1,5 +1,6 @@
 package;
 
+import hxbytevm.syntax.Parser;
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
@@ -51,6 +52,8 @@ class LexerTest {
 				}
 			}
 		}
+
+		Parser.parseFile(File.getContent(Path.join([root, "hxbytevm", "HxByteVm.hx"])));
 
 		//recursiveFinder(root);
 		//for (file in hxfiles) {
