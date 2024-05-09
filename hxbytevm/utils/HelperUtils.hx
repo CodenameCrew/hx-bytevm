@@ -2,6 +2,39 @@ package hxbytevm.utils;
 
 import hxbytevm.core.Ast;
 
+/**
+ * Useful to limit a Dynamic function argument's type to the specified
+ * type parameters. This does NOT make the use of Dynamic type-safe in
+ * any way (the underlying type is still Dynamic and Std.is() checks +
+ * casts are necessary).
+ */
+abstract OneOfTwo<T1, T2>(Dynamic) from T1 from T2 to T1 to T2 {}
+
+class TupleImpl<T1, T2> {
+	public var t1:T1;
+	public var t2:T2;
+	public function new(t1:T1, t2:T2) {
+		this.t1 = t1;
+		this.t2 = t2;
+	}
+}
+
+@:forward
+abstract Tuple<T1, T2>(TupleImpl<T1, T2>) from TupleImpl<T1, T2> to TupleImpl<T1, T2> {
+	@:arrayAccess
+	public inline function get(index:Int):OneOfTwo<T1, T2> {
+		return switch index {
+			case 0: this.t1;
+			case 1: this.t2;
+			default: throw "Invalid index";
+		}
+	}
+
+	public static function make<T1, T2>(t1:T1, t2:T2):Tuple<T1, T2> {
+		return new TupleImpl(t1, t2);
+	}
+}
+
 class HelperUtils {
 	@:noUsing @:pure public static function getPackFromTypePath(typePath:TypePath):String {
 		var pack = "";

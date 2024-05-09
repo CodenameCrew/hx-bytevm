@@ -486,4 +486,56 @@ class Printer {
 		}
 		return s;
 	}
+
+	// Token printing
+
+	public static function getKwdString(kwd:Keyword):String {
+		return switch kwd {
+			case KFunction: "function";
+			case KClass: "class";
+			case KVar: "var";
+			case KIf: "if";
+			case KElse: "else";
+			case KWhile: "while";
+			case KDo: "do";
+			case KFor: "for";
+			case KBreak: "break";
+			case KContinue: "continue";
+			case KReturn: "return";
+			case KExtends: "extends";
+			case KImplements: "implements";
+			case KImport: "import";
+			case KSwitch: "switch";
+			case KCase: "case";
+			case KDefault: "default";
+			case KStatic: "static";
+			case KPublic: "public";
+			case KPrivate: "private";
+			case KTry: "try";
+			case KCatch: "catch";
+			case KNew: "new";
+			case KThis: "this";
+			case KThrow: "throw";
+			case KExtern: "extern";
+			case KEnum: "enum";
+			case KIn: "in";
+			case KInterface: "interface";
+			case KUntyped: "untyped";
+			case KCast: "cast";
+			case KOverride: "override";
+			case KTypedef: "typedef";
+			case KDynamic: "dynamic";
+			case KPackage: "package";
+			case KInline: "inline";
+			case KUsing: "using";
+			case KNull: "null";
+			case KTrue: "true";
+			case KFalse: "false";
+			case KAbstract: "abstract";
+			case KMacro: "macro";
+			case KFinal: "final";
+			case KOperator: "operator";
+			case KOverload: "overload";
+		}
+	}
 }

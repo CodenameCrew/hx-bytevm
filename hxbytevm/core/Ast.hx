@@ -140,6 +140,14 @@ class AstUtils {
 			file: p1.file
 		}
 	}
+
+	public static inline function parseInt(s:String):Int {
+		return Std.parseInt(s);
+	}
+
+	public static inline function parseFloat(s:String):Float {
+		return Std.parseFloat(s);
+	}
 }
 
 typedef Pos = {

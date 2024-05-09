@@ -1,7 +1,11 @@
 package;
 
+import haxe.io.Path;
+import sys.FileSystem;
 import sys.io.File;
 import hxbytevm.syntax.Lexer;
+
+using StringTools;
 
 class LexerTest {
 
@@ -16,14 +20,43 @@ class LexerTest {
 	public static function main() {
 		Sys.println(Util.getTitle("LEXER TESTING"));
 
-		var tokens = Lexer.parse(HELLO_WORLD);
-		trace(tokens);
+		//var tokens = Lexer.parse(HELLO_WORLD);
+		//trace(tokens);
 
-		trace(Lexer.parse(WHILE_LOOP));
-		trace(Lexer.parse(FIBBONACCI));
-		trace(Lexer.parse(FUNCTION_RECURSIVE));
-		trace(Lexer.parse(REGEX));
-		trace(Lexer.parse(COMMENT));
-		trace(Lexer.parse(COMMENTSINGLE));
+		//trace(Lexer.parse(WHILE_LOOP));
+		//trace(Lexer.parse(FIBBONACCI));
+		//trace(Lexer.parse(FUNCTION_RECURSIVE));
+		//trace(Lexer.parse(REGEX));
+		//trace(Lexer.parse(COMMENT));
+		//trace(Lexer.parse(COMMENTSINGLE));
+
+		trace(Lexer.parse("var a = 1;"));
+		trace(Lexer.parse("#if cpp trace('Hello World'); #end"));
+		trace(Lexer.parse("#if !cpp trace('Hello World'); #end"));
+
+		var root = Path.join([Sys.getCwd(), "..", "..", ".."]);
+
+		//trace(root);
+
+		var hxfiles = [];
+
+		function recursiveFinder(path:String) {
+			var files = FileSystem.readDirectory(path);
+			for (file in files) {
+				var filePath = Path.join([path, file]);
+				if (FileSystem.isDirectory(filePath)) {
+					recursiveFinder(filePath);
+				} else if(file.endsWith(".hx")) {
+					hxfiles.push(filePath);
+				}
+			}
+		}
+
+		//recursiveFinder(root);
+		//for (file in hxfiles) {
+		//	Sys.println(file);
+		//	var tokens = Lexer.parse(File.getContent(file));
+		//	trace(tokens);
+		//}
 	}
 }

@@ -20,6 +20,8 @@ package hxbytevm.syntax;
 
 // Copyright since a lot of this code is from https://github.com/HaxeFoundation/haxe/blob/development/src/syntax/lexer.ml
 
+import hxbytevm.printer.Printer;
+import haxe.ds.Option;
 import hxbytevm.utils.Errors;
 import hxbytevm.utils.ExprUtils;
 import hxbytevm.utils.VersionUtils;
@@ -106,6 +108,7 @@ class Lexer {
 		this.input = null;
 		this.pos = 0;
 		this.line = 1;
+		this.tokens = [];
 	}
 
 	public function load(input:String):Void {
@@ -351,7 +354,7 @@ class Lexer {
 							for(i in 0...4) {
 								switch (ch = advanceChar()) {
 									case '0'.code | '1'.code | '2'.code | '3'.code | '4'.code | '5'.code | '6'.code | '7'.code | '8'.code | '9'.code |
-									     'a'.code | 'b'.code | 'c'.code | 'd'.code | 'e'.code | 'f'.code | 'A'.code | 'B'.code | 'C'.code | 'D'.code | 'E'.code | 'F'.code:
+										 'a'.code | 'b'.code | 'c'.code | 'd'.code | 'e'.code | 'f'.code | 'A'.code | 'B'.code | 'C'.code | 'D'.code | 'E'.code | 'F'.code:
 										str.addChar(ch);
 									default:
 										throw "Invalid Character in Regex at line " + startLine + " Character: " + StringUtils.getEscapedString(peek());
@@ -461,10 +464,10 @@ class Lexer {
 	*/
 
 	@:pure public static function splitSuffix(s: String, isInt: Bool): Array<String> {
-        var len = s.length;
+		var len = s.length;
 
-        function loop(i: Int, pivot: Null<Int>): Array<String> {
-            if (i == len) {
+		function loop(i: Int, pivot: Null<Int>): Array<String> {
+			if (i == len) {
 				if(pivot == null)
 					return [s, null];
 
@@ -472,20 +475,20 @@ class Lexer {
 				var literal = s.substr(0, literalLength);
 				var suffix = s.substr(pivot, len - pivot);
 				return [literal, suffix];
-            } else {
-                var c = s.fastCodeAt(i);
-                switch (c) {
-                    case 'i'.code, 'u'.code:
-                        return loop(i + 1, i);
-                    case 'f'.code if(!isInt):
-                        return loop(i + 1, i);
+			} else {
+				var c = s.fastCodeAt(i);
+				switch (c) {
+					case 'i'.code, 'u'.code:
+						return loop(i + 1, i);
+					case 'f'.code if(!isInt):
+						return loop(i + 1, i);
 				}
 				return loop(i + 1, pivot);
-            }
-        }
+			}
+		}
 
-        return loop(0, null);
-    }
+		return loop(0, null);
+	}
 
 	@:pure function split_int_suffix(s: String): Token {
 		var suffixInfo = splitSuffix(s, true);
@@ -498,6 +501,7 @@ class Lexer {
 	}
 
 	public var rules:Array<Array<Dynamic>> = null;
+	var tokens:Array<Token> = [];
 
 	public function tokenize():Array<Token> {
 		if(rules == null) rules = [
@@ -631,8 +635,8 @@ class Lexer {
 			["in", () -> TKwd(KIn)],
 			["cast", () -> TKwd(KCast)],
 
-			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s)],
-			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TDollar(s)],
+			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s.substr(1))],
+			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TDollar(s.substr(1))],
 
 			[re(START, Basic(IDENT)), (s) -> TConst(CIdent(s))],
 			[re(START, Basic(IDTYPE)), (s) -> TConst(CIdent(s))],
@@ -650,36 +654,12 @@ class Lexer {
 
 		var lastToken:Token = null;
 
-		var tokens:Array<Token> = [];
 		while (lastToken != TEof) {
-			lastToken = getToken();
-
-			switch(lastToken) {
-				case TSharp("error"):
-					throw switch(getToken()) {
-						case TConst(CString(s, _)): "Error: " + s;
-						default: "Error: Expected String";
-					}
-				case TSharp("line"):
-					switch(getToken()) {
-						case TConst(CInt(s, _)):
-							var newLine:Null<Int> = try {
-								FastUtils.parseIntLimit(s);
-							} catch(e:Dynamic) null;
-
-							if(newLine == null)
-								throw "Could not parse ridiculous line number " + s;
-							line = newLine;
-						default:
-							throw "Expected Int";
-					}
-				case TSharp(s):
-					throw "Unknown Preprocessor Directive: " + s;
-				default:
-					tokens.push(lastToken);
-			}
-
-			if(StringTools.isEof(peekChar())) {
+			var tk = processToken(nextToken());
+			if(tk != null) {
+				tokens.push(lastToken = tk);
+			} else if(StringTools.isEof(peekChar())) { // this shouldnt be needed, but keep it just in case
+				trace("EOF");
 				tokens.push(TEof);
 				break;
 			}
@@ -688,35 +668,84 @@ class Lexer {
 		return tokens;
 	}
 
+	private function processToken(tk:Token):Token {
+		if(tk == null)
+			return null;
+		var tkpos = AstUtils.nullPos;
+		return switch(tk) {
+			case TSharp("if"):
+				processToken(enterMacro(true, tkpos));
+			case TSharp("else"):
+				processToken(skipTokens(tkpos, false));
+			case TSharp("elseif"):
+				processToken(skipTokens(tkpos, false));
+			case TSharp("end"):
+				nextToken();
+			case TSharp("error"):
+				throw switch(nextToken()) {
+					case TConst(CString(s, _)): "Error: " + s;
+					default: "Error: Expected String";
+				}
+			case TSharp("line"):
+				switch(nextToken()) {
+					case TConst(CInt(s, _)):
+						var newLine:Null<Int> = try {
+							FastUtils.parseIntLimit(s);
+						} catch(e:Dynamic) null;
+
+						if(newLine == null)
+							throw "Could not parse ridiculous line number " + s;
+						line = newLine;
+					default:
+						throw "Expected Int";
+				}
+				nextToken();
+			case TSharp(s):
+				trace(StringUtils.getEscapedString(StringUtils.getLine(input, pos-1)));
+				throw "Unknown Preprocessor Directive: " + s;
+			default:
+				tk;
+		}
+	}
+
 	public static var BUFFER_SIZE = 128; // Use lower values for performance, if it doesnt find a match it will try again with a larger buffer
 
-	private function getToken():Token {
+	private function nextToken():Token {
 		var ch = peekChar();
 		while(ch == " ".code || ch == "\t".code)
 			ch = advanceCharDirect();
 		if(StringTools.isEof(ch)) return TEof;
 
 		var t = parseToken(BUFFER_SIZE);
-		if(t != null) return t;
+		//trace(t);
+		switch(t) {
+			case Some(t): return t;
+			default:
+		}
 		var t = parseToken(); // Try again with a entire buffer
-		if(t != null) return t;
+		switch(t) {
+			case Some(t): return t;
+			default:
+		}
 
+		trace(tokens);
 		throw "Invalid Character " + StringUtils.getEscapedString(input.substr(pos, 55));
 	}
 
 	// TODO: Use class for rules to make it more memory efficient
-	public function parseToken(size:Null<Int> = null):Token {
+	public function parseToken(size:Null<Int> = null):Option<Token> {
 		for(rule in rules) {
 			var rule_case = rule[0];
 
 			if(rule_case is EReg) {
 				var rule_case:EReg = cast rule_case;
-				if(rule_case.match(input.substr(pos, size))) {
+				var match = input.substr(pos, size);
+				if(rule_case.match(match)) { // Might be better to use matchSub
 					var rule_func:(String) -> Token = rule[1];
 					var match = rule_case.matched(0);
 					var token = rule_func(match);
 					pos += match.length;
-					return token;
+					return Some(token);
 				}
 			} else {
 				var rule_case:String = cast rule_case;
@@ -725,16 +754,38 @@ class Lexer {
 					var rule_func:(String) -> Token = rule[1];
 					var token = rule_func(match);
 					pos += match.length;
-					return token;
+					return Some(token);
 				}
 			}
 		}
-		return null;
+		return None;
 	}
 
 	// -- PREPROCESSOR --
 
-	function enter_macro(is_if:Bool, token:Token):Void {
+	function enterMacro(is_if:Bool, pos:Pos) {
+		var v = parseMacroCond();
+		var tk:Option<Token> = v[0];
+		var e:Expr = v[1];
+		//if(is_if) {
+		//	conds.condIf(e);
+		//} else {
+		//	conds.condElse(tk, e);
+		//}
+
+		var tk = switch(tk) {
+			case None: nextToken();
+			case Some(tk): tk;
+		}
+
+		return if(isTrue(eval(e))) {
+			tk;
+		} else {
+			//dbc.openDeadBlock(pos, e.pos);
+			skipTokensLoop(pos, true, nextToken());
+		}
+
+
 		/*let tk, e = parse_macro_cond sraw in
 		(if is_if then conds#cond_if e else conds#cond_elseif e p);
 		let tk = (match tk with None -> Lexer.token code | Some tk -> tk) in
@@ -746,20 +797,137 @@ class Lexer {
 		end*/
 	}
 
-	function skip_tokens_loop(p:Token, test:Bool, tk:Token) {
-		while(true) {
-			tk = getToken();
-			switch(tk) {
-				case TSharp("end"):
-					break;
-				case TSharp("elseif"):
-					// TODO: Evaluate the conditional
+	function skipTokens(p:Pos, test:Bool) {
+		return skipTokensLoop(p, test, nextToken());
+	}
 
-				default:
+	function parseMacroCond():Tuple<Option<Token>, Expr> {
+		var pos = AstUtils.nullPos;
+		var parsing_macro_cond = false;
+		try {
+			var tk = nextToken();
+			var cond = switch(tk) {
+				case TConst(CIdent(t)):
+					Tuple.make(None, parseMacroIdent(t, pos));
+				case TConst(CString(s, qs)):
+					Tuple.make(None, mk(EConst(CString(s, qs)), pos));
+				case TConst(CInt(i, s)):
+					Tuple.make(None, mk(EConst(CInt(AstUtils.parseInt(i), s)), pos));
+				case TConst(CFloat(f, s)):
+					Tuple.make(None, mk(EConst(CFloat(AstUtils.parseFloat(f), s)), pos));
+				case TKwd(keyword):
+					Tuple.make(None, parseMacroIdent(Printer.getKwdString(keyword), pos));
+				case TUnop(op):
+					Tuple.make(Some(tk), Parser.makeUnop(op, parseMacroCond()[1], pos));
+				case TPOpen:
+					var e = Parser.giveExpr(nextToken);
+					var tk = nextToken();
+					if(tk != TPClose) {
+						throw "Expected ')'";
+					}
+					Tuple.make(None, mk(EParenthesis(validateMacroCond(e)), AstUtils.punion(pos, pos)));
+				default: throw "Invalid conditional expression at " + pos.file + ":" + pos.max;
 			}
+			parsing_macro_cond = false;
+			return cond;
+		} catch(e:Dynamic) {
+			parsing_macro_cond = false;
+			throw e;
+		}
+	}
+
+	function validateMacroCond(e: Expr): Expr {
+		switch (e.expr) {
+			case EConst(CIdent(_)), EConst(CString(_)), EConst(CInt(_, _)), EConst(CFloat(_, _)):
+				return e;
+
+			case EUnop(op, p, e1):
+				return mk(EUnop(op, p, validateMacroCond(e1)), e.pos);
+
+			case EBinop(op, e1, e2):
+				return mk(EBinop(op, validateMacroCond(e1), validateMacroCond(e2)), e.pos);
+
+			case EParenthesis(e1):
+				return mk(EParenthesis(validateMacroCond(e1)), e.pos);
+
+			case EField(e1, name, efk):
+				return mk(EField(validateMacroCond(e1), name, efk), e.pos);
+
+			case ECall(e1, args):
+				switch (e1.expr) {
+					case EConst(CIdent(_)):
+						return mk(ECall(e1, args.map(arg -> validateMacroCond(arg))), e.pos);
+					default:
+				}
+
+			default:
+		}
+		throw "Invalid conditional expression at " + e.pos.file + ":" + e.pos.max;
+	}
+
+	function parseMacroIdent(t:String, p:Pos):Expr {
+		if(t == "display") {
+			// if t = "display" then Hashtbl.replace special_identifier_files (Path.UniqueKey.create p.pfile) t;
+		}
+		return mk(EConst(CIdent(t)), p);
+	}
+
+	function skipTokensLoop(p:Pos, test:Bool, tk:Token) {
+		var tkpos = AstUtils.nullPos;
+		if(tk == null)
+			return skipTokens(tkpos, test);
+
+		return switch(tk) {
+			case TSharp("end"):
+				//conds.condEnd(tkpos);
+				//dbc.closeDeadBlock(tkpos);
+				nextToken();
+			case TSharp("elseif") if(!test):
+				//dbc.closeDeadBlock(tkpos);
+				//conds.condElseif(tkpos);
+				skipTokens(tkpos, test);
+
+			case TSharp("else") if(!test):
+				skipTokens(tkpos, test);
+
+			case TSharp("elseif"):
+				enterMacro(false, tkpos);
+
+			case TSharp("else"):
+				nextToken();
+
+			case TSharp("if"):
+				var e = parseMacroCond();
+				//conds.condIf(e);
+				//dbc.openDeadBlock(tkpos);
+				skipTokensLoop(tkpos, false, skipTokens(tkpos, false));
+
+			case TSharp("error") | TSharp("line"):
+				skipTokens(tkpos, test);
+
+			case TSharp(s):
+				throw "Unknown Preprocessor Directive: " + s;
+
+			case TEof:
+				throw "Unclosed conditional";
+
+			default:
+				skipTokens(tkpos, test);
 		}
 		/*match fst tk with
-		| Sharp "end" ->
+
+
+		| Sharp ("error" | "line") ->
+			skip_tokens p test
+		| Sharp s ->
+			sharp_error s (pos tk)
+		| Eof ->
+			preprocessor_error UnclosedConditional p tk
+		| _ ->
+			skip_tokens p test*/
+
+			/*
+					| Sharp "end" ->
 			conds#cond_end (snd tk);
 			dbc#close_dead_block (pos tk);
 			Lexer.token code
@@ -781,20 +949,13 @@ class Lexer {
 		| Sharp "elseif" ->
 			dbc#close_dead_block (pos tk);
 			enter_macro false (snd tk)
-		| Sharp "if" ->
+			| Sharp "if" ->
 			let _,e = parse_macro_cond sraw in
 			conds#cond_if e;
 			dbc#open_dead_block (pos e);
 			let tk = skip_tokens p false in
 			skip_tokens_loop p test tk
-		| Sharp ("error" | "line") ->
-			skip_tokens p test
-		| Sharp s ->
-			sharp_error s (pos tk)
-		| Eof ->
-			preprocessor_error UnclosedConditional p tk
-		| _ ->
-			skip_tokens p test*/
+			*/
 	}
 
 	private function parseVersion(s:String, p:Pos):SmallType {
@@ -956,6 +1117,12 @@ class Lexer {
 				throw "Invalid condition expression at " + expr.pos.file + ":" + expr.pos.max;
 		}
 		return null;
+	}
+
+	@:pure public function mk(e : ExprDef, ?pos : Pos = null) : Expr {
+		if(pos == null)
+			pos = AstUtils.nullPos;
+		return { expr : e, pos : pos };
 	}
 }
 

@@ -107,10 +107,6 @@ class StringUtils {
 		return s;
 	}
 
-	@:pure static inline function hex(c:Int, ?len:Int = 2) {
-		return hexLower(c, len);
-	}
-
 	@:pure public static function getEscapedString(s:String) {
 		var buf = new StringBuf();
 		#if target.unicode
@@ -135,15 +131,27 @@ class StringUtils {
 					else {
 						if(c > 0xFF) {
 							buf.add("\\u{");
-							buf.add(hex(c, null));
+							buf.add(hexLower(c, 2));
 							buf.add("}");
 						} else {
 							buf.add("\\x");
-							buf.add(hex((c & 0xFF)));
+							buf.add(hexLower(c & 0xFF, 2));
 						}
 					}
 			}
 		}
 		return buf.toString();
+	}
+
+	public static function getLine(s:String, pos:Int) {
+		var prevNewline = s.lastIndexOf("\n", pos);
+		var nextNewline = s.indexOf("\n", pos);
+		if (prevNewline == -1)
+			prevNewline = pos < nextNewline ? 0 : prevNewline;
+
+		if(prevNewline != 0) prevNewline++;
+		if (nextNewline == -1)
+			return s.substring(pos);
+		return s.substring(prevNewline, nextNewline);
 	}
 }
