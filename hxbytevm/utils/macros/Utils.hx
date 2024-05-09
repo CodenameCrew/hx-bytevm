@@ -64,4 +64,55 @@ class Utils {
 
 		return Context.getBuildFields();
 	}
+
+	macro public static function assert(cond: Expr, msg: String = ""): Expr {
+		#if HXBYTEVM_DEBUG
+		if(msg == "") {
+			var printer = new Printer();
+			msg = printer.printExpr(cond);
+		}
+		var cf = Context.typeExpr(cond);
+		var isEnum = false;
+		var ge1 = null;
+		var ge2 = null;
+		switch(cf.expr) { // TODO: make this only check types when the expr is a EBinop
+			case TBinop(op, e1, e2):
+				switch(e1.t) {
+					case TEnum(t, params): isEnum = true;
+					default:
+				}
+				switch(e2.t) {
+					case TEnum(t, params): isEnum = true;
+					default:
+				}
+				if(isEnum) {
+					switch(cond.expr) {
+						case EBinop(op, e1, e2):
+							ge1 = e1;
+							ge2 = e2;
+						default:
+					}
+				}
+			default:
+				throw "assert: only binary operators are supported";
+		}
+		if(isEnum) {
+			return macro {
+				var __a = ${ge1};
+				var __b = ${ge2};
+				if(!Type.enumEq(__a, __b)) {
+					throw $v{msg} + " (" + __a + " != " + __b + ")";
+				}
+			}
+		} else {
+			return macro {
+				if(!(${cond})) {
+					throw $v{msg};
+				}
+			}
+		}
+		#else
+		return macro {};
+		#end
+	}
 }

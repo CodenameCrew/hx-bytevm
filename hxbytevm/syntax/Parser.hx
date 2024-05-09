@@ -1,11 +1,14 @@
 package hxbytevm.syntax;
 
+import hxbytevm.syntax.parsers.ComplexTypeParser;
 import hxbytevm.utils.Errors;
 import haxe.ds.Option;
 import hxbytevm.utils.enums.Result;
 import hxbytevm.core.Token;
 import hxbytevm.utils.Stream;
 import hxbytevm.core.Ast;
+
+import hxbytevm.utils.macros.Utils.assert;
 
 using hxbytevm.utils.HelperUtils;
 
@@ -15,8 +18,20 @@ enum TypeDeclMode {
 	TCAfterType;
 }
 
+enum DeclFlag {
+	DPrivate;
+	DExtern;
+	DFinal;
+	DMacro;
+	DDynamic;
+	DInline;
+	DPublic;
+	DStatic;
+	DOverload;
+}
+
 class Parser {
-	public var s:StreamCacheAccessor<Token>;
+	public var s:CacheStream<Token>;
 
 	public function new(s : Stream<Token>) {
 		this.s = new CacheStream(s);
@@ -176,19 +191,19 @@ class Parser {
 		s.junk();
 	}
 
-	private function parse_access_flags():Array<AccessFlags> {
+	private function parse_decl_flags():Array<DeclFlag> {
 		var accs = [];
 		while(true) {
 			accs.push(switch(s.peek().get(TEof)) {
-				case TKwd(KPrivate): s.junk(); APrivate;
-				case TKwd(KExtern): s.junk(); AExtern;
-				case TKwd(KFinal): s.junk(); AFinal;
-				case TKwd(KMacro): s.junk(); AMacro;
-				case TKwd(KDynamic): s.junk(); ADynamic;
-				case TKwd(KInline): s.junk(); AInline;
-				case TKwd(KPublic): s.junk(); APublic;
-				case TKwd(KStatic): s.junk(); AStatic;
-				case TKwd(KOverload): s.junk(); AOverload;
+				case TKwd(KPrivate): s.junk(); DPrivate;
+				case TKwd(KExtern): s.junk(); DExtern;
+				case TKwd(KFinal): s.junk(); DFinal;
+				case TKwd(KMacro): s.junk(); DMacro;
+				case TKwd(KDynamic): s.junk(); DDynamic;
+				case TKwd(KInline): s.junk(); DInline;
+				case TKwd(KPublic): s.junk(); DPublic;
+				case TKwd(KStatic): s.junk(); DStatic;
+				case TKwd(KOverload): s.junk(); DOverload;
 				default: break;
 			});
 		}
@@ -250,12 +265,52 @@ class Parser {
 		return meta;
 	}
 
+	function parsePlacedName(allowKeywords:Bool = false):PlacedName {
+		var tk = s.peek().get(TEof);
+		switch(tk) {
+			case TConst(CIdent(st)):
+				s.junk();
+				return { string: st, pos: AstUtils.nullPos };
+			case TKwd(KMacro) if(allowKeywords):
+				s.junk();
+				return { string: "macro", pos: AstUtils.nullPos };
+			case TKwd(KExtern) if(allowKeywords):
+				s.junk();
+				return { string: "extern", pos: AstUtils.nullPos };
+			case TKwd(KFunction) if(allowKeywords):
+				s.junk();
+				return { string: "function", pos: AstUtils.nullPos };
+			default:
+				throw "Expected identifier, got " + tk;
+		}
+	}
+
+	//private function parseTypeParams():Array<TypeParam> {
+	//	var tks = [];
+	//	while(true) {
+	//		var tk = s.peek().get(TEof);
+	//		if(tk == TEof)
+	//			throw "Expected type parameter, got " + tk;
+	//		if(tk == TComma) continue;
+	//		s.junk();
+	//		tks.push(parseTypeParam());
+	//	}
+	//	return tks;
+	//}
+
+	private function parseComplexType():ComplexType {
+		return ComplexTypeParser.giveType(s);
+	}
+
 	private function parseTypedef(mode:TypeDeclMode, meta:Metadata = null, ?access:Array<AccessFlags>, ?doc:Documenation = null):TypeDecl {
-		/*switch(s.peek().get(TEof)) {
+		assert(s.last() == TKwd(KTypedef));
+
+		switch(s.peek().get(TEof)) {
 			case TKwd(KTypedef):
 				s.junk();
 				var name = parsePlacedName();
-				var params = parseTypeParams();
+				var params = [];//parseTypeParams();
+				trace("TODO: implement type params");
 				var type = parseComplexType();
 				return ETypedef({
 					d_name: name,
@@ -266,9 +321,58 @@ class Parser {
 					d_data: type
 				});
 			default:
-				return null;
-		}*/
-		return null;
+		}
+		throw "Expected typedef, got " + s.last();
+	}
+
+	private static function unsupported_decl_flag<T>(flag:DeclFlag, pos:Pos, type:String):Option<T> {
+		trace("Unsupported "+type+" declaration flag: " + flag);
+		return None;
+	}
+
+	private function decl_flag_to_class_flag(flag:DeclFlag, pos:Pos):Option<ClassFlag> {
+		return switch(flag) {
+			case DPrivate: Some(HPrivate);
+			case DExtern: Some(HExtern);
+			case DFinal: Some(HFinal);
+			default: unsupported_decl_flag(flag, pos, "class");
+		}
+	}
+
+	private function decl_flag_to_enum_flag(flag:DeclFlag, pos:Pos):Option<EnumFlag> {
+		return switch(flag) {
+			case DPrivate: Some(EPrivate);
+			case DExtern: Some(EExtern);
+			default: unsupported_decl_flag(flag, pos, "enum");
+		}
+	}
+
+	private function decl_flag_to_typedef_flag(flag:DeclFlag, pos:Pos):Option<TypedefFlag> {
+		return switch(flag) {
+			case DPrivate: Some(TDPrivate);
+			case DExtern: Some(TDExtern);
+			default: unsupported_decl_flag(flag, pos, "typedef");
+		}
+	}
+
+	private function decl_flag_to_abstract_flag(flag:DeclFlag, pos:Pos):Option<AbstractFlag> {
+		return switch(flag) {
+			case DPrivate: Some(AbPrivate);
+			case DExtern: Some(AbExtern);
+			default: unsupported_decl_flag(flag, pos, "abstract");
+		}
+	}
+
+	public static function decl_flag_to_module_field_flag(flag:DeclFlag, pos:Pos):Option<AccessFlags> {
+		return switch(flag) {
+			case DPrivate: Some(APrivate);
+			case DMacro: Some(AMacro);
+			case DDynamic: Some(ADynamic);
+			case DInline: Some(AInline);
+			case DOverload: Some(AOverload);
+			case DExtern: Some(AExtern);
+			default: unsupported_decl_flag(flag, pos, "module field");
+		}
 	}
 
 	private function parseTypeDecl(mode:TypeDeclMode):TypeDecl {
@@ -280,18 +384,18 @@ class Parser {
 			default:
 				//var doc = get_doc();
 				var meta = parse_meta();
-				var access = parse_access_flags();
+				var declFlags = parse_decl_flags();
 
 				trace("Parsed meta: " + meta);
-				trace("Parsed access: " + access);
+				trace("Parsed decl flags: " + declFlags);
 
 				switch(s.last()) {
 					//case TKwd(KClass) | TKwd(KInterface):
 					//	return parseClass(mode);
 					//case TKwd(KEnum):
 					//	return parseEnum(mode);
-					//case TKwd(KTypedef):
-					//	return parseTypedef(mode);
+					case TKwd(KTypedef):
+						return parseTypedef(mode);
 					//case TKwd(KAbstract):
 					//	return parseAbstract(mode);
 					default:
@@ -330,6 +434,8 @@ class Parser {
 	}
 
 	private function parseImport():TypeDecl {
+		assert(s.last() == TKwd(KImport));
+
 		s.junk();
 		var path:Array<PlacedName> = [];
 		var mode:ImportMode = INormal;
@@ -387,24 +493,6 @@ class Parser {
 			mode: mode
 		});
 	}
-
-	/*private static function psep<T>(sep:Token, tokens:Array<Token>, f:Token->T):Array<T> {
-		var pos = 0;
-		var getToken = () -> tokens[pos++];
-		var tks = [];
-
-		while(true) {
-			var tk = getToken();
-			if(tk == sep) {
-				//if(tks.length == 0)
-				//	throw "Expected token, got " + getToken();
-				break;
-			}
-			tks.push(f(tk));
-		}
-
-		return tks;
-	}*/
 }
 
 class HaxeFile {

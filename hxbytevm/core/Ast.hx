@@ -187,7 +187,7 @@ enum TypeParam {
 
 enum ComplexType {
 	CTPath( placed_type_path : PlacedTypePath );
-	CTFunction( type_hint_list : Array<ComplexType> , type_hint : ComplexType );
+	CTFunction( args : Array<ComplexType> , ret : ComplexType );
 	CTAnonymous( class_field : Array<ClassField> );
 	CTParent( type_hint : ComplexType );
 	CTExtend( placed_type_path : Array<PlacedTypePath> , class_field : Array<ClassField> );
