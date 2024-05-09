@@ -90,6 +90,10 @@ abstract DefineContext(Map<String, Dynamic>) from Map<String, Dynamic> to Map<St
 	}
 }
 
+
+/**
+ * A lexer and preprocessor for the Haxe language.
+**/
 class Lexer {
 	public var defines:DefineContext;
 
@@ -210,12 +214,30 @@ class Lexer {
 		}
 	}
 
+	public function parseSingleComment(s:String):Token {
+		pos += 2; // to skip the //
+		var str = new FastStringBuf();
+		while (pos < input.length) {
+			var ch = advanceChar();
+			switch (ch) {
+				case "\r".code:
+					if(peekChar() == "\n".code)
+						pos++;
+					break;
+				case "\n".code:
+					break;
+			}
+			str.addChar(ch);
+		}
+		pos -= 2;
+		return TCommentLine(str.toString());
+	}
+
 	public function parseBlockComment(s:String):Token {
 		pos += 2; // to skip the /*
 		var start = pos;
 		var startLine = line;
 		var str = new FastStringBuf();
-		//trace("Current char: " + pos, input.length, start, startLine);
 		while (pos < input.length) {
 			var ch = advanceChar();
 			// hopefully we dont need to check for eof
@@ -223,8 +245,6 @@ class Lexer {
 			switch (ch) {
 				case "*".code:
 					if (peekChar() == "/".code) {
-						//pos++;
-						//trace("Adding comment: " + str);
 						pos -= 1;
 						return TComment(str.toString());
 					}
@@ -497,7 +517,7 @@ class Lexer {
 			[re(START, Basic(INTEGER), Basic(FLOAT_SUFFIX)), (s) -> split_float_suffix(s)],
 			[re(START, Str("\\."), Plus(INT_DIGITS), Opt(FLOAT_SUFFIX)), (s) -> split_float_suffix(s)],
 
-			[re(START, Str("\\/\\/"), Star([Str("[^\\n\\r]")])), (s) -> TCommentLine(s)], // Single line comment
+			["//", (s) -> parseSingleComment(s)], // Single line comment
 			["/*", (s) -> parseBlockComment(s)], // TODO: maybe make this use a regex instead
 
 			["~/", () -> parseRegex()],
@@ -558,8 +578,6 @@ class Lexer {
 
 			["\"", () -> parseStringDouble()],
 			["'", () -> parseStringSingle()],
-			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s)],
-			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TConst(CIdent(s))],
 
 			// typedecl
 			["package", () -> TKwd(KPackage)],
@@ -612,6 +630,10 @@ class Lexer {
 			["new", () -> TKwd(KNew)],
 			["in", () -> TKwd(KIn)],
 			["cast", () -> TKwd(KCast)],
+
+			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s)],
+			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TDollar(s)],
+
 			[re(START, Basic(IDENT)), (s) -> TConst(CIdent(s))],
 			[re(START, Basic(IDTYPE)), (s) -> TConst(CIdent(s))],
 		];
