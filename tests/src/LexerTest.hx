@@ -30,9 +30,9 @@ class LexerTest {
 		//trace(Lexer.parse(COMMENT));
 		//trace(Lexer.parse(COMMENTSINGLE));
 
-		trace(Lexer.parse("var a = 1;"));
-		trace(Lexer.parse("#if cpp trace('Hello World'); #end"));
-		trace(Lexer.parse("#if !cpp trace('Hello World'); #end"));
+		trace(Lexer.parse("var a = 1;").getEntire());
+		trace(Lexer.parse("#if cpp trace('Hello World'); #end").getEntire());
+		trace(Lexer.parse("#if !cpp trace('Hello World'); #end").getEntire());
 
 		var root = Path.join([Sys.getCwd(), "..", "..", ".."]);
 

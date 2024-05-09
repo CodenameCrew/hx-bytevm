@@ -20,6 +20,7 @@ package hxbytevm.syntax;
 
 // Copyright since a lot of this code is from https://github.com/HaxeFoundation/haxe/blob/development/src/syntax/lexer.ml
 
+import hxbytevm.utils.Stream;
 import hxbytevm.printer.Printer;
 import haxe.ds.Option;
 import hxbytevm.utils.Errors;
@@ -27,6 +28,7 @@ import hxbytevm.utils.ExprUtils;
 import hxbytevm.utils.VersionUtils;
 import hxbytevm.utils.FastUtils;
 import hxbytevm.core.Ast;
+import hxbytevm.core.Token;
 import hxbytevm.utils.RegexUtils;
 import hxbytevm.utils.StringUtils;
 import hxbytevm.utils.FastStringBuf;
@@ -37,34 +39,6 @@ using StringTools;
 
 // TODO: Add string interpolation
 // TODO: Add string unescaping in StringUtils.unescape
-
-enum Token {
-	TEof;
-	TConst(const:TConstant);
-	TKwd(keyword:Keyword);
-	TComment(comment:String);
-	TCommentLine(commentline:String);
-	TBinop(op:Binop);
-	TUnop(unop:Unop);
-	TSemicolon;
-	TComma;
-	TBrOpen;
-	TBrClose;
-	TBkOpen;
-	TBkClose;
-	TPOpen;
-	TPClose;
-	TDot;
-	TDblDot; // Should we name this TColon? aka :
-	TQuestionDot;
-	TArrow;
-	TIntInterval(string:String);
-	TSharp(string:String); // preprocessor directive
-	TQuestion;
-	TAt;
-	TDollar(string:String);
-	TSpread;
-}
 
 enum SmallType {
 	TNull;
@@ -92,12 +66,66 @@ abstract DefineContext(Map<String, Dynamic>) from Map<String, Dynamic> to Map<St
 	}
 }
 
+class Lexer extends Stream<Token> {
+	public var lexer:LexerImpl = new LexerImpl();
+	public var cache:TokenCache = new TokenCache();
+	public var defines(get, set):DefineContext;
+	public var line(get, set):Int;
+
+	public function new() {
+		super(function(i:Int):Option<Token> {
+			var t = lexer.nextToken();
+			cache.add(t);
+			return Some(t);
+		});
+		lexer.stream = this; // TEMP, TODO: turn Lexer and LexerImpl into a single class
+	}
+
+	public inline function load(text:String) {
+		cache.clear();
+		lexer.load(text);
+	}
+
+	public static function parse(input:String):Lexer {
+		//if (input == null || input.length <= 0) return [TEof];
+		var lexer = new Lexer();
+		lexer.load(input);
+		return lexer;
+	}
+
+	public function getEntire():Array<Token> {
+		while(!empty()) {
+			next();
+		}
+		return cache.tokens;
+	}
+
+	public override function empty():Bool {
+		return peek().get(TEof) == TEof;
+	}
+
+	// Getter and setters
+	private inline function get_defines():DefineContext {
+		return lexer.defines;
+	}
+	private inline function set_defines(value:DefineContext):DefineContext {
+		return lexer.defines = value;
+	}
+	private inline function get_line():Int {
+		return lexer.line;
+	}
+	private inline function set_line(value:Int):Int {
+		return lexer.line = value;
+	}
+}
 
 /**
  * A lexer and preprocessor for the Haxe language.
 **/
-class Lexer {
+@:allow(hxbytevm.syntax.Lexer)
+class LexerImpl {
 	public var defines:DefineContext;
+	private var stream:Lexer;
 
 	private function new() {
 		reset();
@@ -108,11 +136,21 @@ class Lexer {
 		this.input = null;
 		this.pos = 0;
 		this.line = 1;
-		this.tokens = [];
 	}
 
 	public function load(input:String):Void {
 		this.input = input;
+		this.pos = 0;
+
+		var ch = peekChar();
+		if(ch == 0xfeff) { // remove byte order mark
+			advanceChar();
+		}
+		if(ch == "#".code && peekChar(1) == "!".code) {
+			while(ch != "\n".code && ch != "\r".code) {
+				ch = advanceCharDirect();
+			}
+		}
 	}
 
 	public function loadDefaultDefines():Map<String, Dynamic> {
@@ -121,12 +159,6 @@ class Lexer {
 
 	public var pos:Int = 0;
 	public var input:String;
-	public static function parse(input:String):Array<Token> {
-		if (input == null || input.length <= 0) return [TEof];
-		var lexer = new Lexer();
-		lexer.load(input);
-		return lexer.tokenize();
-	}
 
 	@:pure public inline function isAtEnd(): Bool {
 		return pos >= input.length;
@@ -500,10 +532,8 @@ class Lexer {
 		return TConst(CFloat(suffixInfo[0], suffixInfo[1]));
 	}
 
-	public var rules:Array<Array<Dynamic>> = null;
-	var tokens:Array<Token> = [];
-
-	public function tokenize():Array<Token> {
+	public var rules(get, null):Array<Array<Dynamic>> = null;
+	function get_rules():Array<Array<Dynamic>> {
 		if(rules == null) rules = [
 			// EOF is handled outside
 			//[" ", () -> null],
@@ -635,37 +665,13 @@ class Lexer {
 			["in", () -> TKwd(KIn)],
 			["cast", () -> TKwd(KCast)],
 
-			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s.substr(1))],
-			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TDollar(s.substr(1))],
-
 			[re(START, Basic(IDENT)), (s) -> TConst(CIdent(s))],
 			[re(START, Basic(IDTYPE)), (s) -> TConst(CIdent(s))],
+
+			[re(START, Str("\\#"), Basic(IDENT)), (s) -> TSharp(s.substr(1))],
+			[re(START, Str("\\$"), Star([Str("[_a-zA-Z0-9]")])), (s) -> TDollar(s.substr(1))],
 		];
-
-		var ch = peekChar();
-		if(ch == 0xfeff) { // remove byte order mark
-			advanceChar();
-		}
-		if(ch == "#".code && peekChar(1) == "!".code) {
-			while(ch != "\n".code && ch != "\r".code) {
-				ch = advanceCharDirect();
-			}
-		}
-
-		var lastToken:Token = null;
-
-		while (lastToken != TEof) {
-			var tk = processToken(nextToken());
-			if(tk != null) {
-				tokens.push(lastToken = tk);
-			} else if(StringTools.isEof(peekChar())) { // this shouldnt be needed, but keep it just in case
-				trace("EOF");
-				tokens.push(TEof);
-				break;
-			}
-		}
-
-		return tokens;
+		return rules;
 	}
 
 	private function processToken(tk:Token):Token {
@@ -682,7 +688,7 @@ class Lexer {
 			case TSharp("end"):
 				nextToken();
 			case TSharp("error"):
-				throw switch(nextToken()) {
+				throw switch(getToken()) {
 					case TConst(CString(s, _)): "Error: " + s;
 					default: "Error: Expected String";
 				}
@@ -710,7 +716,7 @@ class Lexer {
 
 	public static var BUFFER_SIZE = 128; // Use lower values for performance, if it doesnt find a match it will try again with a larger buffer
 
-	private function nextToken():Token {
+	public function getToken():Token {
 		var ch = peekChar();
 		while(ch == " ".code || ch == "\t".code)
 			ch = advanceCharDirect();
@@ -728,8 +734,11 @@ class Lexer {
 			default:
 		}
 
-		trace(tokens);
 		throw "Invalid Character " + StringUtils.getEscapedString(input.substr(pos, 55));
+	}
+
+	public inline function nextToken():Token {
+		return processToken(getToken());
 	}
 
 	// TODO: Use class for rules to make it more memory efficient
@@ -774,7 +783,7 @@ class Lexer {
 		//}
 
 		var tk = switch(tk) {
-			case None: nextToken();
+			case None: getToken();
 			case Some(tk): tk;
 		}
 
@@ -782,7 +791,7 @@ class Lexer {
 			tk;
 		} else {
 			//dbc.openDeadBlock(pos, e.pos);
-			skipTokensLoop(pos, true, nextToken());
+			skipTokensLoop(pos, true, tk);
 		}
 
 
@@ -798,14 +807,14 @@ class Lexer {
 	}
 
 	function skipTokens(p:Pos, test:Bool) {
-		return skipTokensLoop(p, test, nextToken());
+		return skipTokensLoop(p, test, getToken());
 	}
 
 	function parseMacroCond():Tuple<Option<Token>, Expr> {
 		var pos = AstUtils.nullPos;
 		var parsing_macro_cond = false;
 		try {
-			var tk = nextToken();
+			var tk = getToken();
 			var cond = switch(tk) {
 				case TConst(CIdent(t)):
 					Tuple.make(None, parseMacroIdent(t, pos));
@@ -820,11 +829,11 @@ class Lexer {
 				case TUnop(op):
 					Tuple.make(Some(tk), Parser.makeUnop(op, parseMacroCond()[1], pos));
 				case TPOpen:
-					var e = Parser.giveExpr(nextToken);
-					var tk = nextToken();
-					if(tk != TPClose) {
-						throw "Expected ')'";
-					}
+					var e = Parser.giveExpr(this.stream);
+					//var tk = nextToken();
+					//if(tk != TPClose) {
+					//	throw "Expected ')'";
+					//}
 					Tuple.make(None, mk(EParenthesis(validateMacroCond(e)), AstUtils.punion(pos, pos)));
 				default: throw "Invalid conditional expression at " + pos.file + ":" + pos.max;
 			}
@@ -881,7 +890,7 @@ class Lexer {
 			case TSharp("end"):
 				//conds.condEnd(tkpos);
 				//dbc.closeDeadBlock(tkpos);
-				nextToken();
+				getToken();
 			case TSharp("elseif") if(!test):
 				//dbc.closeDeadBlock(tkpos);
 				//conds.condElseif(tkpos);
@@ -894,10 +903,10 @@ class Lexer {
 				enterMacro(false, tkpos);
 
 			case TSharp("else"):
-				nextToken();
+				getToken();
 
 			case TSharp("if"):
-				var e = parseMacroCond();
+				//var e = parseMacroCond();
 				//conds.condIf(e);
 				//dbc.openDeadBlock(tkpos);
 				skipTokensLoop(tkpos, false, skipTokens(tkpos, false));
@@ -1125,386 +1134,3 @@ class Lexer {
 		return { expr : e, pos : pos };
 	}
 }
-
-
-/*
-and process_token tk =
-		match fst tk with
-		| Comment s ->
-			(* if encloses_resume (pos tk) then syntax_completion SCComment (pos tk); *)
-			let l = String.length s in
-			if l > 0 && s.[0] = '*' then last_doc := Some (String.sub s 1 (l - (if l > 1 && s.[l-1] = '*' then 2 else 1)), (snd tk).pmin);
-			let tk = next_token() in
-			tk
-		| CommentLine s ->
-			if !in_display_file then begin
-				let p = pos tk in
-				(* Completion at the / should not pick up the comment (issue #9133) *)
-				let p = if is_completion() then {p with pmin = p.pmin + 1} else p in
-				(* The > 0 check is to deal with the special case of line comments at the beginning of the file (issue #10322) *)
-				if display_position#enclosed_in p && p.pmin > 0 then syntax_completion SCComment None (pos tk);
-			end;
-			next_token()
-		| Sharp "end" ->
-			conds#cond_end (snd tk);
-			next_token()
-		| Sharp "elseif" ->
-			let _,(e,pe) = parse_macro_cond sraw in
-			conds#cond_elseif (e,pe) (snd tk);
-			dbc#open_dead_block pe;
-			let tk = skip_tokens (pos tk) false in
-			process_token tk
-		| Sharp "else" ->
-			conds#cond_else (snd tk);
-			dbc#open_dead_block (pos tk);
-			let tk = skip_tokens (pos tk) false in
-			process_token tk
-		| Sharp "if" ->
-			process_token (enter_macro true (snd tk))
-		| Sharp "error" ->
-			(match Lexer.token code with
-			| (Const (String(s,_)),p) -> error (Custom s) p
-			| _ -> error Unimplemented (snd tk))
-		| Sharp "line" ->
-			let line = (match next_token() with
-				| (Const (Int (s, _)),p) -> (try int_of_string s with _ -> error (Custom ("Could not parse ridiculous line number " ^ s)) p)
-				| (t,p) -> error (Unexpected t) p
-			) in
-			!(Lexer.cur).Lexer.lline <- line - 1;
-			next_token();
-		| Sharp s ->
-			sharp_error s (pos tk)
-		| _ ->
-			tk
-
-	and enter_macro is_if p =
-		let tk, e = parse_macro_cond sraw in
-		(if is_if then conds#cond_if e else conds#cond_elseif e p);
-		let tk = (match tk with None -> Lexer.token code | Some tk -> tk) in
-		if is_true (eval ctx e) then begin
-			tk
-		end else begin
-			dbc#open_dead_block (pos e);
-			skip_tokens_loop p true tk
-		end
-
-	and skip_tokens_loop p test tk =
-		match fst tk with
-		| Sharp "end" ->
-			conds#cond_end (snd tk);
-			dbc#close_dead_block (pos tk);
-			Lexer.token code
-		| Sharp "elseif" when not test ->
-			dbc#close_dead_block (pos tk);
-			let _,(e,pe) = parse_macro_cond sraw in
-			conds#cond_elseif (e,pe) (snd tk);
-			dbc#open_dead_block pe;
-			skip_tokens p test
-		| Sharp "else" when not test ->
-			conds#cond_else (snd tk);
-			dbc#close_dead_block (pos tk);
-			dbc#open_dead_block (pos tk);
-			skip_tokens p test
-		| Sharp "else" ->
-			conds#cond_else (snd tk);
-			dbc#close_dead_block (pos tk);
-			Lexer.token code
-		| Sharp "elseif" ->
-			dbc#close_dead_block (pos tk);
-			enter_macro false (snd tk)
-		| Sharp "if" ->
-			let _,e = parse_macro_cond sraw in
-			conds#cond_if e;
-			dbc#open_dead_block (pos e);
-			let tk = skip_tokens p false in
-			skip_tokens_loop p test tk
-		| Sharp ("error" | "line") ->
-			skip_tokens p test
-		| Sharp s ->
-			sharp_error s (pos tk)
-		| Eof ->
-			preprocessor_error UnclosedConditional p tk
-		| _ ->
-			skip_tokens p test
-
-	and skip_tokens p test = skip_tokens_loop p test (Lexer.token code)
-	*/
-
-class ConditionHandler {
-	var conditionalExpressions:Array<Expr> = [];
-	var conditionalStack:Array<{e:Expr, elseIf:Bool}> = [];
-	var depths:Array<Int> = [];
-
-	public function new() {
-		conditionalExpressions = [];
-		conditionalStack = [];
-		depths = [];
-	}
-
-	private function mk(e:ExprDef, ?p:Pos = null):Expr {
-		if(p == null) {
-			trace("Possible missing position");
-			p = AstUtils.nullPos;
-		}
-		return { expr: e, pos: p };
-	}
-
-	private function maybeParent(allowAnd:Bool, e:Expr):Expr {
-		return switch(e.expr) {
-			case EBinop(BOpBoolAnd, _, _) if(allowAnd): e;
-			case EBinop(_, _, _): mk(EParenthesis(e), e.pos);
-			default: e;
-		}
-	}
-
-	private function negate(e:Expr):Expr {
-		return switch(e.expr) {
-			case EUnop(UNot, UFPrefix, e1): e1;
-			case EBinop(BOpBoolAnd, e1, e2): mk(EBinop(BOpBoolOr, negate(e1), negate(e2)), e.pos);
-			case EBinop(BOpBoolOr, e1, e2): mk(EBinop(BOpBoolAnd, negate(e1), negate(e2)), e.pos);
-			default: mk(EUnop(UNot, UFPrefix, e), e.pos);
-		}
-	}
-
-	private function conjoin(lhs:Expr, rhs:Expr):Expr {
-		var lhs = maybeParent(true, lhs);
-		var rhs = maybeParent(true, rhs);
-		return mk(EBinop(BOpBoolAnd, lhs, rhs), AstUtils.punion(lhs.pos, rhs.pos));
-	}
-	private function condIfPriv(e:Expr) {
-		conditionalExpressions.push(e);
-		conditionalStack.push({e: e, elseIf: false});
-		// depths <- 1 :: depths
-	}
-
-	public function condIf(e:Expr) {
-		condIfPriv(e);
-		depths.insert(0, 1);
-		// depths <- 1 :: depths
-	}
-
-	public function condElse(p:Pos) {
-		if(conditionalStack.length == 0) {
-			throw "Internal Error: Invalid Else at " + p.file + ":" + p.max;
-		}
-		var top = conditionalStack.last();
-		if(top.elseIf) {
-			throw "Internal Error: Invalid Else at " + p.file + ":" + p.max;
-		}
-
-		conditionalStack.insert(0, {e: negate(top.e), elseIf: true});
-		//	//match conditional_stack with
-		//	//| (_,true) :: _ ->
-		//	//	error (Preprocessor_error InvalidElse) p
-		//	//| (e,false) :: el ->
-		//	//	conditional_stack <- (self#negate e,true) :: el
-		//	//| [] ->
-		//	//	error (Preprocessor_error InvalidElse) p
-	}
-
-	public function condElseif(e:Expr) {
-		condElse(e.pos);
-		condIfPriv(e);
-		if(depths.length == 0) {
-			throw "Preprocessor error: Invalid else if";
-		}
-
-		depths.insert(0, depths.first() + 1);
-		// | depth :: depths' ->
-		//	depths <- (depth + 1) :: depths'
-	}
-
-	public function condEnd(p:Pos) {
-		function recLoop(d:Int, el:Array<{e:Expr, elseIf:Bool}>) {
-			return if(d == 0) {
-				el;
-			} else {
-				recLoop(d - 1, el.slice(1));
-			}
-		}
-		if(depths.length == 0) {
-			throw "Preprocessor error: Invalid end";
-		}
-
-		//var depth = depths.first();
-		//depths = depths.slice(1);
-		// this is very likely wrong
-		var depth = depths.shift();
-		conditionalStack = recLoop(depth, conditionalStack);
-
-		/*method cond_end (p : pos) =
-		let rec loop d el =
-			if d = 0 then el
-			else loop (d - 1) (List.tl el)
-		in
-		match depths with
-			| [] ->
-				error (Preprocessor_error InvalidEnd) p
-			| depth :: depths' ->
-				conditional_stack <- loop depth conditional_stack;
-				depths <- depths'
-*/
-	}
-
-	public function getCurrentCondition():Expr {
-		if(conditionalStack.length == 0) {
-			return mk(EConst(CIdent("true")), AstUtils.nullPos);
-		}
-
-		// I have no fucking clue what fold_left means here, help
-
-		return switch(conditionalStack) {
-			default: mk(EConst(CIdent("true")), AstUtils.nullPos);
-			//| (e,_) :: el ->
-			//	List.fold_left self#conjoin e (List.map fst el)
-			//| [] ->
-			//	(EConst (Ident "true"),null_pos)
-		}
-	}
-
-	public function getConditions():Array<Expr> {
-		return conditionalExpressions;
-	}
-}
-
-	/*class condition_handler = object(self)
-	val mutable conditional_expressions = []
-	val mutable conditional_stack = []
-	val mutable depths = []
-
-	method private maybe_parent allow_and e = match fst e with
-		| EBinop(op,_,_) ->
-			if op = OpBoolAnd && allow_and then e
-			else (EParenthesis e,pos e)
-		| _ -> e
-
-	method private negate (e : expr) = match fst e with
-		| EUnop(Not,_,e1) -> e1
-		| EBinop(OpBoolAnd,e1,e2) -> (EBinop(OpBoolOr,self#negate e1,self#negate e2),(pos e))
-		| EBinop(OpBoolOr,e1,e2) -> (EBinop(OpBoolAnd,self#negate e1,self#negate e2),(pos e))
-		| _ -> (EUnop(Not,Prefix,e),(pos e))
-
-	method private conjoin (lhs : expr) (rhs : expr) =
-		let lhs = self#maybe_parent true lhs in
-		let rhs = self#maybe_parent true rhs in
-		(EBinop(OpBoolAnd,lhs,rhs),punion (pos lhs) (pos rhs))
-
-	method private cond_if' (e : expr) =
-		conditional_expressions <- e :: conditional_expressions;
-		conditional_stack <- (e,false) :: conditional_stack
-
-	method cond_if (e : expr) =
-		self#cond_if' e;
-		depths <- 1 :: depths
-
-	method cond_else (p : pos) =
-		match conditional_stack with
-		| (_,true) :: _ ->
-			error (Preprocessor_error InvalidElse) p
-		| (e,false) :: el ->
-			conditional_stack <- (self#negate e,true) :: el
-		| [] ->
-			error (Preprocessor_error InvalidElse) p
-
-	method cond_elseif (e : expr) (p : pos) =
-		self#cond_else p;
-		self#cond_if' e;
-		match depths with
-		| [] ->
-			error (Preprocessor_error InvalidElseif) p
-		| depth :: depths' ->
-			depths <- (depth + 1) :: depths'
-
-	method cond_end (p : pos) =
-		let rec loop d el =
-			if d = 0 then el
-			else loop (d - 1) (List.tl el)
-		in
-		match depths with
-			| [] ->
-				error (Preprocessor_error InvalidEnd) p
-			| depth :: depths' ->
-				conditional_stack <- loop depth conditional_stack;
-				depths <- depths'
-
-	method get_current_condition = match conditional_stack with
-		| (e,_) :: el ->
-			List.fold_left self#conjoin e (List.map fst el)
-		| [] ->
-			(EConst (Ident "true"),null_pos)
-
-	method get_conditions =
-		conditional_expressions
-end*/
-
-typedef DeadBlock = {
-	var p:Pos;
-	var cond:Expr;
-}
-
-/*class DeadBlockCollector {
-	public var preprocessor:Preprocessor;
-
-	var deadBlocks:Array<DeadBlock> = [];
-	var currentBlock:Array<DeadBlock> = [];
-
-	public function new() {
-		deadBlocks = [];
-		currentBlock = [];
-	}
-
-	public function openDeadBlock(p:Pos) {
-		currentBlock.insert(0, {p: {file: p.file, max: p.max, min: p.max}, cond: preprocessor.conds.getCurrentCondition()});
-		//currentBlock.push({p: {pos: p., pmax: p.pmax, pmin: p.pmax}, cond: Preprocessor.conds.getCurrentCondition()});
-	}
-
-	public function closeDeadBlock(p:Pos) {
-		if(currentBlock.length == 0) {
-			throw "Internal error: Trying to close dead block that's not open";
-		}
-
-		var top = currentBlock.pop();
-
-		var p0 = top.p;
-		var cond = top.cond;
-
-		deadBlocks.push({
-			p: {file: p0.file, max: p0.max, min: p0.max},
-			cond: cond
-		});
-		//switch(currentBlock) {
-		//	case []:
-		//		throw "Internal error: Trying to close dead block that's not open";
-		//	case [{p0, cond}] :: pl:
-		//		currentBlock = pl;
-		//		deadBlocks.push({p: {pos: p0.pos, pmax: p0.pmax, pmin: p0.pmax}, cond: cond});
-		//}
-	}
-
-	public function getDeadBlocks():Array<{p:Pos, cond:Expr}> {
-		if(currentBlock.length > 0) {
-			throw "Internal error: Trying to close dead block that's not open";
-		}
-		return deadBlocks;
-	}
-}*/
-
-	/*
-class dead_block_collector conds = object(self)
-	val dead_blocks = DynArray.create ()
-	val mutable current_block = []
-
-	method open_dead_block (p : pos) =
-		current_block <- ({p with pmin = p.pmax},conds#get_current_condition) :: current_block
-
-	method close_dead_block (p : pos) = match current_block with
-		| [] ->
-			error (Custom "Internal error: Trying to close dead block that's not open") p;
-		| (p0,cond) :: pl ->
-			current_block <- pl;
-			DynArray.add dead_blocks ({p0 with pmax = p.pmin},cond)
-
-	method get_dead_blocks : (pos * expr) list =
-		assert(current_block = []);
-		DynArray.to_list dead_blocks
-end*/

@@ -1,5 +1,6 @@
 package hxbytevm.utils;
 
+import haxe.ds.Option;
 import hxbytevm.core.Ast;
 
 /**
@@ -61,5 +62,23 @@ class HelperUtils {
 	}
 	public inline static function first<T>(arr:Array<T>):T {
 		return arr[0];
+	}
+
+	public inline static function get<T>(s:Option<T>, ?defaultValue:T):T {
+		return switch s {
+			case Some(v): v;
+			case None: defaultValue;
+		}
+	}
+
+	public inline static function getOrThrow<T>(s:Option<T>):T {
+		return switch s {
+			case Some(v): v;
+			case None: throw "Invalid Option";
+		}
+	}
+
+	public inline static function toOption<T>(v:T):Option<T> {
+		return if(v == null) None else Some(v);
 	}
 }

@@ -148,6 +148,24 @@ class AstUtils {
 	public static inline function parseFloat(s:String):Float {
 		return Std.parseFloat(s);
 	}
+
+	public static function isLowerIdent(s:String):Bool {
+		if(s.length == 0)
+			throw hxbytevm.utils.Errors.InvalidArgument("Identifier name must not be empty");
+
+		var ptr = 0;
+		var c = s.charCodeAt(ptr);
+		if(c >= 'a'.code && c <= 'z'.code) {
+			return true;
+		}
+		while(c == '_'.code) {
+			c = s.charCodeAt(++ptr);
+			if(c >= 'a'.code && c <= 'z'.code) {
+				return true;
+			}
+		}
+		return false;
+	}
 }
 
 typedef Pos = {
@@ -409,7 +427,7 @@ typedef ImportExpr = {
 	var mode : ImportMode ;
 }
 
-enum Typedef {
+enum TypeDecl {
 	EClass( def : Definition<ClassFlag, Array<ClassField>> );
 	EEnum( def : Definition<EnumFlag, Array<EnumConstructor>> );
 	ETypedef( def : Definition<TypedefFlag, ComplexType> );
