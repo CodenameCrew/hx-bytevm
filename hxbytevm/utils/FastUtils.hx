@@ -1,13 +1,11 @@
 package hxbytevm.utils;
 
-/*
 #if cpp
 @:build(hxbytevm.utils.macros.Utils.includeXml("hxbytevmutils", "FastUtils.xml", "include"))
 @:include('FastUtils.h')
 #end
 @:unreflective
-#if cpp extern #end*/ class FastUtils {
-	/*
+#if cpp extern #end class FastUtils {
 	#if cpp
 	@:native('combineStringFast') public static function combineStringFast1(a:String):String;
 	@:native('combineStringFast') public static function combineStringFast2(a:String, b:String):String;
@@ -46,7 +44,6 @@ package hxbytevm.utils;
 	@:native('repeatString') public static function repeatString(str:String, times:Int):String;
 	@:native('parse_int_throw') public static function parseIntLimit(str:String):Int;
 	#else
-	*/
 	@:pure public static inline function combineStringFast1(a:String):String return _combineString(a);
 	@:pure public static inline function combineStringFast2(a:String, b:String):String return _combineString(a,b);
 	@:pure public static inline function combineStringFast3(a:String, b:String, c:String):String return _combineString(a,b,c);
@@ -98,5 +95,5 @@ package hxbytevm.utils;
 	@:pure public static function parseIntLimit(str:String):Int { // TODO: make this work
 		return Std.parseInt(str);
 	}
-	// #end
+	#end
 }

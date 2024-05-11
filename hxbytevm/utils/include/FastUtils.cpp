@@ -2,6 +2,7 @@
 #include <hx/CFFI.h>
 #include <vector>
 #include <limits.h>
+#include <ctype.h>
 
 String _combineStringFast(const std::vector<String>& inArray) {
 	int len = 0;
