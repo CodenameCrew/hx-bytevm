@@ -22,12 +22,12 @@ class Program {
 	public var instructions:Array<OpCode>;
 	public var read_only_stack:Array<StackValue>;
 	public var constant_stack:Array<StackValue>;
-	public var varnames_stack:Array<Array<String>>;
+	public var varnames_stack:Array<String>;
 
 	public var program_funcs:Array<ProgramFunc>;
 	public var func_names:Array<String>;
 
-	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<Array<String>>, program_funcs:Array<ProgramFunc>, func_names:Array<String>) {
+	public function new(instructions:Array<OpCode>, read_only_stack:Array<StackValue>, constant_stack:Array<StackValue>, varnames_stack:Array<String>, program_funcs:Array<ProgramFunc>, func_names:Array<String>) {
 		this.instructions = instructions;
 		this.read_only_stack = read_only_stack;
 		this.constant_stack = constant_stack;
@@ -82,11 +82,7 @@ class Program {
 				case PUSH: prints[4].push('VAR:       ${get_rom()}');
 				case PUSHV | SAVE:
 					var v_id = get_rom();
-					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[dp][v_id]}")');
-				case PUSHV_D | SAVE_D:
-					var d = get_rom();
-					var v_id = get_rom();
-					prints[4].push(varnames_stack.length < d && varnames_stack[d] != null ? 'VAR_ID:    $v_id  ("${varnames_stack[d][v_id]}") (D: $d)' : 'VAR_ID:    $v_id  (D: $d)');
+					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[v_id]}")');
 				case PUSHC:
 					var c_id = get_rom();
 					var const = constant_stack[c_id];
@@ -137,13 +133,11 @@ class Program {
 			case PUSH: "PUSH";
 
 			case PUSHV: "PUSHV";
-			case PUSHV_D: "PUSHV_D";
 			case PUSHC: "PUSHC";
 
 			case POP: "POP";
 
 			case SAVE: "SAVE";
-			case SAVE_D: "SAVE_D";
 
 			case RET: "RET";
 

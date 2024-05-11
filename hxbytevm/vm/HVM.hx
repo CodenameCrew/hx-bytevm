@@ -1,5 +1,7 @@
 package hxbytevm.vm;
 
+import hxbytevm.utils.ReverseIterator.ReverseArrayIterator;
+import hxbytevm.vm.Program.Variable;
 import hxbytevm.compiler.Compiler.Pointer;
 import hxbytevm.core.Ast.Func;
 import hxbytevm.core.Ast.FunctionKind;
@@ -18,8 +20,8 @@ class HVM {
 	var ip:Int;
 	var rp:Int;
 
-	@:noCompletion public var _varnames:Array<Array<String>> = [[]];
-	@:noCompletion public var _variables:Array<Array<Dynamic>> = [[]];
+	@:noCompletion public var _varnames:Array<String> = [];
+	@:noCompletion public var _variables:Array<Array<Variable>> = [];
 
 	@:noCompletion public var constants:Array<Dynamic> = [];
 
@@ -34,7 +36,7 @@ class HVM {
 		stack = new Stack();
 		depth = 0; program = null;
 
-		_varnames = [[]];
+		_varnames = [];
 		_variables = [[]];
 		constants = [];
 
@@ -57,7 +59,7 @@ class HVM {
 		constants = program.constant_stack;
 
 		_varnames = program.varnames_stack;
-		_variables = [for (scopenames in _varnames) cast new haxe.ds.Vector<Dynamic>(scopenames.length)];
+		__createVariables();
 
 		variables.set("trace", Reflect.makeVarArgs(function(args:Array<Dynamic>) {
 			var inf:haxe.PosInfos = @:fixed {
@@ -79,11 +81,8 @@ class HVM {
 		if (program != null) load(program);
 
 		while (ip <= instructions.length-1) {
-			trace(program.print_opcode(instructions[ip]));
 			instruction(instructions[ip]);
 			ip++;
-			trace(ip, instructions.length);
-
 		}
 
 		return ret;
@@ -91,9 +90,11 @@ class HVM {
 
 	public inline function get_rom():Dynamic {
 		if (func_id != -1) {
+			#if HXBYTEVM_DEBUG __romDiff++ #end;
 			var ret = func_rom[frp];
 			frp++; return ret;
 		}
+		#if HXBYTEVM_DEBUG __romDiff++ #end;
 		var ret = rom[rp];
 		rp++; return ret;
 	}
@@ -107,43 +108,30 @@ class HVM {
 	}
 
 	var ret:Dynamic = null;
-	public function instruction(instruction:OpCode):Dynamic {
+	public function instruction(instruction:OpCode) {
+		#if HXBYTEVM_DEBUG __romDiff = 0; #end
 		switch (instruction) {
-			case PUSH:
-				stack.push(get_rom());
-			case PUSHV: stack.push(_variables[depth][get_rom()]); // ! Unused in compiler.hx
-			case PUSHV_D:
-				var d = get_rom();
-				var v_id = get_rom();
-
-				stack.push(_variables[d][v_id]);
-			case PUSHC:
-				trace("hello?", constants);
-				stack.push(constants[get_rom()]);
+			case PUSH: stack.push(get_rom());
+			case PUSHV: stack.push(__getVar(get_rom()));
+			case PUSHC: stack.push(constants[get_rom()]);
 			case POP: stack.pop();
-			case SAVE:
-				_variables[depth][get_rom()] = stack.pop();
-			case SAVE_D:
-				var v_id = get_rom();
-				var d = get_rom();
-				_variables[d][v_id] = stack.pop();
+			case SAVE: __setVar(get_rom(), stack.pop());
 			case RET: ret = stack.pop();
-			case DEPTH_INC: depth++;
-			case DEPTH_DNC:
-				depth--;
+			case DEPTH_INC: depth++; __createVariables();
+			case DEPTH_DNC: __clearVariables(); depth--;
 			case JUMP:
-				var r = get_rom();
 				var i = get_rom();
+				var r = get_rom();
 				_jump(i-1, r);
 			case JUMP_COND:
-				var r = get_rom();
 				var i = get_rom();
+				var r = get_rom();
 				if (stack.pop() == true) {
 					_jump(i-1, r);
 				}
 			case JUMP_N_COND:
-				var r = get_rom();
 				var i = get_rom();
+				var r = get_rom();
 				if (stack.pop() == false) {
 					_jump(i-1, r);
 				}
@@ -279,7 +267,8 @@ class HVM {
 				stack.push(stacktop);
 			case LOCAL_CALL: local_call(get_rom());
 		}
-		return null;
+
+		#if HXBYTEVM_DEBUG if (debug) print_debug(); #end
 	}
 
 	var func_instructions:Array<OpCode>;
@@ -294,12 +283,9 @@ class HVM {
 	var frp:Int;
 
 	public function local_call(func:Int) {
-		trace(func);
 		inline function end_call() {
 			var pointer = func_pointers.pop();
 			var old_func = func_ids.pop();
-
-			trace("end");
 
 			if (func_pointers.length <= 0)
 				// return to regular run() function
@@ -326,6 +312,8 @@ class HVM {
 
 		// do instructions
 		__updateFuncStacks();
+		#if HXBYTEVM_DEBUG if (debug) Sys.println('>----------------- FUNCTION ENTERED $func -----------------<'); #end
+		#if HXBYTEVM_DEBUG if (debug) Sys.println(' >>>>>>> $func_rom'); #end
 		while (fip <= func_instructions.length-1) {
 			switch (func_instructions[fip]) {
 				case RET: fip++; end_call(); return;
@@ -340,4 +328,72 @@ class HVM {
 		func_instructions = program.program_funcs[func_id].instructions;
 		func_rom = program.program_funcs[func_id].read_only_stack;
 	}
+
+	public inline function __createVariables() {
+		if (_variables.length > depth) return;
+		_variables[depth] = [for (i in 0..._varnames.length) UnDefined];
+	}
+
+	public inline function __clearVariables() {
+		if (_variables.length < depth) return;
+		_variables.pop();
+	}
+
+	public inline function __getVar(v:Int):Dynamic {
+		var result:Dynamic = null;
+		for (vars in new ReverseArrayIterator(_variables)) {
+			if (vars[v] != null) switch (vars[v]) {
+				case Defined(value): result = value;
+				default: // go to next depth
+			}
+		}
+		return result;
+	}
+
+	public inline function __setVar(v:Int, value:Dynamic) {
+		_variables[depth][v] = Defined(value);
+	}
+
+	public inline function __getVarInDepth(v:Int, d:Int):Dynamic {
+		return switch (_variables[d][v]) {
+			case Defined(value): value;
+			case UnDefined: null;
+		}
+	}
+
+	public inline function __setVarInDepth(v:Int, d:Int, value:Dynamic)
+		_variables[d][v] = Defined(value);
+
+	#if HXBYTEVM_DEBUG
+	public var debug:Bool = false;
+
+	public var __romDiff:Int = 0;
+	public function print_debug() {
+		var instruction_rom:Array<Dynamic> = (func_id != -1 ? func_rom : rom).copy().splice((func_id != -1 ? frp : rp)-__romDiff, __romDiff);
+		Sys.print(' >>> | I: ${func_id != -1 ? fip : ip}, R: ${func_id != -1 ? frp : rp} | ${program.print_opcode(func_id != -1 ? func_instructions[fip] : instructions[ip])} | ');
+
+		switch (func_id != -1 ? func_instructions[fip] : instructions[ip]) {
+			case PUSH: Sys.print('VAR:       ${instruction_rom[0]}');
+			case PUSHV | SAVE:
+				Sys.print('VAR_ID:    ${instruction_rom[0]}  ("${program.varnames_stack[instruction_rom[0]]}")');
+			case PUSHC:
+				var const = program.constant_stack[instruction_rom[0]];
+				var desc:String = '${const is String ? '"' : ''}$const${const is String ? '"' : ''}';
+				Sys.print('CONST_ID:  ${instruction_rom[0]}  ($desc)');
+			case JUMP | JUMP_COND | JUMP_N_COND:
+				Sys.print('IP: ${instruction_rom[0]}, RP: ${instruction_rom[1]}');
+			case FIELD_GET | FIELD_SET: Sys.print('NAME:  ${instruction_rom[0]}');
+			case ARRAY_GET | ARRAY_SET:
+				Sys.print('A_ID:  ${instruction_rom[0]}, I_ID:  ${instruction_rom[1]}');
+			case ARRAY_STACK: Sys.print('SIZE:      ${instruction_rom[0]}');
+			case STK_OFF: Sys.print('OFFSET:  ${instruction_rom[0]}');
+			case LOCAL_CALL:
+				Sys.print('FUNCTION:  ${instruction_rom[0]}  (${program.func_names[instruction_rom[0]]})');
+			default:
+		}
+		Sys.print("\n");
+		Sys.println('--STACK: ${stack.getShortVersion()} ---');
+		Sys.print("\n");
+	}
+	#end
 }

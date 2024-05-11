@@ -12,9 +12,10 @@ class CompilerTest {
 		// run(InterpTest.HELLO_WORLD_EXPR, "CALL_TEST");
 		// run(InterpTest.WHILE_LOOP_EXPR, "WHILE_LOOP_TEST");
 		// run(InterpTest.FIBBONACCI_FUNCTION_RECURSIVE, "FIBBONACCI_FUNCTION_RECURSIVE");
-		run(InterpTest.TEST_FUNCTION, "TEST FUNCTION");
+		// run(InterpTest.TEST_FUNCTION, "TEST FUNCTION");
 
-		// run(InterpTest.FUNCTION_RECURSIVE, "FUNCTION RECURSIVE");
+		run(InterpTest.FUNCTION_RECURSIVE, "FUNCTION RECURSIVE");
+		// run(InterpTest.IF_STATEMENT, "IF STATEMENT");
 	}
 
 
@@ -26,6 +27,7 @@ class CompilerTest {
 		compiler.compile(e);
 
 		var vm:HVM = new HVM();
+		// vm.debug = true;
 		Sys.println(compiler.program.print());
 
 		// Sys.println(compiler.program.varnames_stack);

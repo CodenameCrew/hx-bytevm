@@ -24,6 +24,7 @@ class Stack {
 	}
 
 	public inline function pop():Dynamic {
+		if (stackTop <= 0) return null;
 		stackTop--;
 		#if cpp
 		var ret = untyped stack.__unsafe_get(stackTop);
@@ -42,7 +43,7 @@ class Stack {
 		return #if cpp untyped stack.__unsafe_get(stackTop-1+offset) #else stack[stackTop-1+offset] #end;
 
 	public inline function getShortVersion():Array<Dynamic>
-		return stackTop >= 0 ? stack.slice(0, stackTop) : [];
+		return stackTop >= 0 ? stack.copy().slice(0, stackTop) : [];
 
 	public function toString():String {
 		return "Stack([" + getShortVersion().join(", ") + "])";

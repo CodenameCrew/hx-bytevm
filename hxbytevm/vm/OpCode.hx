@@ -4,13 +4,11 @@ enum abstract OpCode(#if cpp cpp.Int8 #else Int #end) {
 	var PUSH:OpCode; // 1 ROM SPACE: Pushes ROM1 to stack
 
 	var PUSHV:OpCode; // 1 ROM SPACE: Pushes _variables[scope][ROM1] to stack
-	var PUSHV_D:OpCode; // 2 ROM SPACE: Pushes _variables[ROM1][ROM2] to stack
 	var PUSHC:OpCode; // 1 ROM SPACE: Pushes constants[ROM1] to stack
 
 	var POP:OpCode; // 0 ROM SPACE: Pops stack
 
 	var SAVE:OpCode; // 1 ROM SPACE: Pushes stack[stacktop] to variables[depth][ROM1], removing it from the stack
-	var SAVE_D:OpCode; // 2 ROM SPACE: Pushes stack[stacktop] to variables[ROM1][ROM2], removing it from the stack
 
 	var RET:OpCode; // 0 ROM SPACE: Returns stack[stacktop], removing it from the stack
 

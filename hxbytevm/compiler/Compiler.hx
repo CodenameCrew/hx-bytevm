@@ -43,17 +43,16 @@ class Compiler {
 	public var ip:Int;
 	public var rp:Int;
 
+	public var depth:Int = 0;
+
 	public function new() {}
 
 	public function reset() {
 		program = Program.createEmpty(); depth = 0;
-		pointers = []; pointer_counter = 0;
-		declaredVars = [];
+		pointers = [];
 
 		instructions = program.instructions;
 		read_only_stack = program.read_only_stack;
-
-		postCompilers = []; postCompile = false;
 	}
 
 	public function getConstant(c:Dynamic) {
@@ -63,61 +62,27 @@ class Compiler {
 	}
 
 	public function pushConstant(c:Dynamic) {
-		var idx = getConstant(c);
-		read_only_stack.insert(rp++, idx);
+		read_only_stack.insert(rp++, getConstant(c));
 		instructions.insert(ip++, PUSHC);
 	}
 
-	public var depth:Int = 0;
-
-	public function getVar(name:String):Dynamic {
-		for (varnames in program.varnames_stack) {
-			var idx:Int = varnames.indexOf(name);
-			if (idx != -1) return idx;
-		}
-		return -1;
-	}
-
-	public function getVarInDepth(name:String, ?depth:Int):Dynamic {
-		for (i in 0...depth+1)
-			if (program.varnames_stack[i] == null)
-				program.varnames_stack[i] = [];
-
-		var idx = program.varnames_stack[depth].indexOf(name);
-		if(idx == -1) {
-			program.varnames_stack[depth].push(name);
-			return program.varnames_stack[depth].length-1;
-		}
-		return idx;
+	public function getVar(v:Dynamic) {
+		if(program.varnames_stack.contains(v)) return program.varnames_stack.indexOf(v);
+		program.varnames_stack.push(v);
+		return program.varnames_stack.length-1;
 	}
 
 	public function pushVar(vname:String) {
-		var index:Int = -1;
-		var depth:Int = this.depth;
-		for (d => varnames in program.varnames_stack) {
-			var idx:Int = varnames.indexOf(vname);
-			if (idx != -1) {index = idx; depth = d; break;}
-		}
-
-		if(index == -1) index = getVarInDepth(vname, depth);
-
-		read_only_stack.insert(rp++, depth);
-		read_only_stack.insert(rp++, index);
-
-		instructions.insert(ip++, PUSHV_D);
+		read_only_stack.insert(rp++, getVar(vname));
+		instructions.insert(ip++, PUSHV);
 	}
 
-	public function getVarDepth(vname:String):Int {
-		var depth:Int = this.depth;
-		for (d => varnames in program.varnames_stack) {
-			var idx:Int = varnames.indexOf(vname);
-			if (idx != -1) {depth = d; break;}
-		}
-		return depth;
+	public function saveVar(vname:String) {
+		read_only_stack.insert(rp++, getVar(vname));
+		instructions.insert(ip++, SAVE);
 	}
 
 	public var pointers:Array<Pointer> = [];
-
 	public function pointer():Pointer {
 		var pointer = new Pointer(instructions.length, get_rom_len());
 		pointers.push(pointer);
@@ -152,43 +117,31 @@ class Compiler {
 		}
 	}
 
-	var pointer_counter(default, null):Int = 0;
-	public inline function getUniqueId():Int {
-		return pointer_counter++;
-	}
-
-	public var postCompilers:Array<{p:Pointer, e:Expr}> = [];
-	public var postCompile:Bool = false;
 	public function compile(expr:Expr):Void {
 		reset();
 
+		compile_functions(expr);
 		switch (expr.expr) {
 			case EBlock(exprs): for (e in exprs) _compile(e);
 			default: _compile(expr);
 		}
-		post_compile();
 		compile_pointers();
-
 		instructions.insert(ip++, RET);
 	}
 
-	public function post_compile() {
-		postCompile = true;
-		for (i => post in postCompilers) {
-			set_compile_pointer(post.p.ip, post.p.rp);
-			_compile(post.e);
-
-			postCompilers[i] = null;
-
-			// correct offset of other post compiliers
-			for (i in 0...postCompilers.length)
-				if (postCompilers[i] != null)
-					postCompilers[i].p.offset(ip-post.p.ip, rp-post.p.rp);
-		}
-		postCompile = false;
+	private var compileFunctions:Bool = true;
+	private function compile_functions(expr:Expr) {
+		compileFunctions = true;
+		ExprUtils.recursive(expr, (e:Expr) -> {
+			if (e == null || e.expr == null) return;
+			switch(e.expr) {
+				case EFunction(func_kind, func): _compile(e);
+				default:
+			}
+		});
+		compileFunctions = false;
 	}
 
-	private var declaredVars:Array<String> = [];
 	private function _compile(expr:Expr) {
 		if (expr == null || expr.expr == null) return;
 
@@ -214,7 +167,6 @@ class Compiler {
 					}
 				}
 			case EBlock(exprs):
-				var old = declaredVars.length;
 				instructions.insert(ip++, DEPTH_INC);
 				depth++;
 				for (e in exprs) {
@@ -222,7 +174,6 @@ class Compiler {
 				}
 				depth--;
 				instructions.insert(ip++, DEPTH_DNC);
-				declaredVars = declaredVars.slice(0, old);
 			case ETry(e, catches):
 				trace("Try statement not implemented");
 				_compile(e);
@@ -270,15 +221,15 @@ class Compiler {
 				//instructions.insert(ip++, IS);
 			case ENew(path, expr):
 				var pack = HelperUtils.getPackFromTypePath(path.path);
-				if(declaredVars.contains(pack)) {
-					// Push from vars
-				} else {
+				// if(declaredVars.contains(pack)) {
+				// 	// Push from vars
+				// } else {
 					var cls = Type.resolveClass(pack);
 					if (cls == null)
 						throw "Unknown class";
 					read_only_stack.insert(rp++, cls);
 					instructions.insert(ip++, PUSH);
-				}
+				// }
 				//pushConstant(path);
 				for (e in expr) {
 					_compile(e);
@@ -314,38 +265,31 @@ class Compiler {
 			case EVars(vars):
 				for (v in vars) {
 					// todo handle isFinal, isStatic, isPublic
-					declaredVars.push(v.name.string);
 					_compile(v.expr);
-					if(depth == 0) {
-						read_only_stack.insert(rp++, getVarInDepth(v.name.string, depth));
-						instructions.insert(ip++, SAVE);
-					}
+					saveVar(v.name.string);
 				}
 			case EIf(econd, eif, eelse) | ETernary(econd, eif, eelse):
 				var end_p = pointer();
-				var a1_p = pointer();
+				var else_p = pointer();
 				_compile(econd);
-				read_only_stack.insert(rp++, a1_p);
-				instructions.insert(ip++, JUMP_N_COND); // jump to label a1 if econd is false
+				read_only_stack.insert(rp++, eelse != null ? else_p : end_p);
+				instructions.insert(ip++, JUMP_N_COND);
 				_compile(eif);
 				if(eelse != null) {
 					read_only_stack.insert(rp++, end_p);
-					instructions.insert(ip++, JUMP); // jump to pointer END
-				}
-				// pointer A1
-				pointer_update(a1_p);
-				if (eelse != null) {
+					instructions.insert(ip++, JUMP);
+
+					pointer_update(else_p);
+					trace(else_p);
 					_compile(eelse);
 				}
 				pointer_update(end_p);
-				// pointer END
 			case EWhile(econd, e, flag):
 				switch (flag) {
 					case WFNormalWhile:
-						// label START
 						var start_p = pointer();
 						var end_p = pointer();
-						pointer_update(start_p); // test
+						pointer_update(start_p);
 						_compile(econd);
 						// TODO: helper function to make this cleaner
 						read_only_stack.insert(rp++, end_p);
@@ -355,6 +299,7 @@ class Compiler {
 						instructions.insert(ip++, JUMP); // to label START
 
 						pointer_update(end_p);
+						trace(end_p, get_compile_pointer());
 					case WFDoWhile:
 						var start = pointer();
 						_compile(e);
@@ -457,7 +402,26 @@ class Compiler {
 					instructions.insert(ip++, PUSH_NULL);
 				if (depth > 0) instructions.insert(ip++, DEPTH_DNC);
 				instructions.insert(ip++, RET);
+
 			case EFunction(name, func):
+				if (!compileFunctions) { // update depth
+					switch (name) {
+						case FNamed(placed_name, isInline):
+							var program_func:ProgramFunc = null;
+							var func_id:Int = -1;
+
+							if (program.func_names.contains(placed_name.string))
+								program_func = program.program_funcs[func_id = program.func_names.indexOf(placed_name.string)];
+
+							if (func_id != -1) program_func.depth = depth;
+
+						// TODO: Make like IDs for these and connect then to the expr
+						case FAnonymous:
+						case FArrow:
+					}
+					return;
+				}
+
 				var program_func:ProgramFunc = {
 					instructions: [],
 					read_only_stack: [],
@@ -492,27 +456,32 @@ class Compiler {
 				instructions = program_func.instructions;
 				read_only_stack = program_func.read_only_stack;
 
-				var oldPostCompiliers = postCompilers;
-				postCompilers = [];
-
 				switch (func.expr.expr) {
 					case EBlock(exprs):
-						var old = declaredVars.length;
 						instructions.insert(ip++, DEPTH_INC);
 						depth++;
 
-						for (arg in new ReverseArrayIterator(func.args)) {
-							read_only_stack.insert(rp++, getVarInDepth(arg.name.string, depth));
-							instructions.insert(ip++, SAVE);
+						for (arg in new ReverseArrayIterator(func.args))
+							saveVar(arg.name.string);
+
+						// recurssion
+						switch (name) {
+							case FNamed(placed_name, isInline):
+								program.program_funcs.push(program_func);
+								program.func_names.push(placed_name.string);
+
+							// TODO: Make like IDs for these and connect then to the expr
+							case FAnonymous:
+							case FArrow:
 						}
 
+						compile_functions(func.expr);
 						for (e in exprs) _compile(e);
 
 						depth--;
-						if (!contains_ret(instructions)) instructions.insert(ip++, DEPTH_DNC);
-						declaredVars = declaredVars.slice(0, old);
+						if (!contains_ret(instructions))
+							instructions.insert(ip++, DEPTH_DNC);
 
-						post_compile();
 						compile_pointers();
 					case _:
 						throw "Functions must be in blocks";
@@ -521,16 +490,6 @@ class Compiler {
 				instructions = program.instructions;
 				read_only_stack = program.read_only_stack;
 
-				postCompilers = oldPostCompiliers;
-
-				switch (name) {
-					case FNamed(placed_name, isInline):
-						program.program_funcs.push(program_func);
-						program.func_names.push(placed_name.string);
-					// TODO: Make like IDs for these and connect then to the expr
-					case FAnonymous:
-					case FArrow:
-				}
 			case EField(e, field, safe):
 				var isSafe = safe == EFSafe;
 					var end_p = pointer();
@@ -617,12 +576,7 @@ class Compiler {
 			case EBinop(BOpAssign, e1, e2):
 				var varname:String = HelperUtils.getIdentFromExpr(e1);
 				_compile(e2);
-
-				read_only_stack.insert(rp++, getVarDepth(varname));
-				read_only_stack.insert(rp++, getVarInDepth(varname, read_only_stack[read_only_stack.length-1]));
-
-				instructions.insert(ip++, SAVE_D);
-
+				saveVar(varname);
 			case EBinop(BOpAssignOp(op), e1, e2):
 				throw "BinopAssignOp not implemented";
 				/*_compile(e1);
@@ -693,17 +647,13 @@ class Compiler {
 					case USpread: throw "Spread not implemented";
 				}
 			case ECall(e, args):
-				if (!postCompile) {
-					postCompilers.push({p: get_compile_pointer(), e: expr});
-					return;
-				}
 				var program_func:ProgramFunc = null;
 				var func_id:Int = -1;
 				switch (e.expr) {
 					case EConst(CIdent(name)):
 						if (program.func_names.contains(name))
 							program_func = program.program_funcs[func_id = program.func_names.indexOf(name)];
-					default:
+					default: throw "Call missing name";
 				}
 
 				if (program_func != null) {
@@ -728,7 +678,8 @@ class Compiler {
 					instructions.insert(ip++, ARRAY_STACK);
 					instructions.insert(ip++, CALL);
 
-					instructions.insert(ip++, POP); // TODO: See if the return value is Void and if it is pop the val in HVM.hx
+					// TODO: See if the return value is Void and if it is pop the val in HVM.hx
+					instructions.insert(ip++, POP);
 				}
 			case EObjectDecl(fields):
 				instructions.insert(ip++, PUSH_OBJECT);
@@ -738,9 +689,6 @@ class Compiler {
 					instructions.insert(ip++, FIELD_SET);
 				}
 		}
-
-		// trace(expr.expr);
-		// Sys.println(program.print());
 	}
 
 	public inline function set_compile_pointer(ip:Int, rp:Int) {

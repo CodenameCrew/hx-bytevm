@@ -42,30 +42,32 @@ class VarAccess {
 
 	public inline function set(key:String, value:Dynamic) {
 		if (usedefaults) {defaults.set(key, value); return;}
-		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames)) {
-			var index:Int = varnames.indexOf(key);
-			if (index != -1) parent._variables[i][index] = value;
-		}
 
+		var index:Int = parent._varnames.indexOf(key);
+		if (index != -1) parent.__setVarInDepth(index, 0, value);
 	}
 
 	public inline function get(key:String):Dynamic {
-		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
-			if (varnames.contains(key))
-				return parent._variables[i][varnames.indexOf(key)];
+		if (usedefaults) {return defaults.get(key);}
+
+		var index:Int = parent._varnames.indexOf(key);
+		if (index != -1) return parent.__getVarInDepth(index, 0);
+
 		return null;
 	}
 
 	public inline function exists(key:String):Bool {
-		for (varnames in new ReverseArrayIterator(parent._varnames))
-			if (varnames.contains(key))
-				return true;
-		return false;
+		if (usedefaults) {return defaults.exists(key);}
+
+		var index:Int = parent._varnames.indexOf(key);
+		return index == -1 && parent._variables[0][index] != UnDefined;
 	}
 
 	public inline function remove(key:String) {
-		for (i => varnames in new ReverseArrayKeyValueIterator(parent._varnames))
-			parent._variables[i][varnames.indexOf(key)] = null;
+		if (usedefaults) {defaults.remove(key); return;}
+
+		var index:Int = parent._varnames.indexOf(key);
+		if (index != -1) parent._variables[0][index] = UnDefined;
 	}
 
 	public inline function clear():Void {
@@ -77,7 +79,7 @@ class VarAccess {
 		var map:Map<String, Dynamic> = [
 			for (v => variables in new ReverseArrayKeyValueIterator(parent._variables))
 				for (i in 0...parent._variables[v].length)
-					parent._varnames[v][i] => variables[i]
+					parent._varnames[i] => variables[i]
 		];
 		return map;
 	}
