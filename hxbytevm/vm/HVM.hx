@@ -382,16 +382,17 @@ class HVM {
 	public var __romDiff:Int = 0;
 	public function print_debug() {
 		var instruction_rom:Array<Dynamic> = (func_id != -1 ? func_rom : rom).copy().splice((func_id != -1 ? frp : rp)-__romDiff, __romDiff);
-		Sys.print(' >>> | I: ${func_id != -1 ? fip : ip}, R: ${func_id != -1 ? frp : rp} | ${program.print_opcode(func_id != -1 ? func_instructions[fip] : instructions[ip])} | ');
+		Sys.print(' >>> | I: ${func_id != -1 ? fip : ip}, R: ${func_id != -1 ? frp : rp} | ${@:str program.print_opcode(func_id != -1 ? func_instructions[fip] : instructions[ip])} | ');
 
 		switch (func_id != -1 ? func_instructions[fip] : instructions[ip]) {
 			case PUSH: Sys.print('VAR:       ${instruction_rom[0]}');
 			case PUSHV | SAVE:
-				Sys.print('VAR_ID:    ${instruction_rom[0]}  ("${program.varnames_stack[instruction_rom[0]]}")');
+				Sys.print('VAR_ID:    ${instruction_rom[0]}  ("${@:str program.varnames_stack[instruction_rom[0]]}")');
 			case PUSHC:
 				var const = program.constant_stack[instruction_rom[0]];
-				var desc:String = '${const is String ? '"' : ''}$const${const is String ? '"' : ''}';
-				Sys.print('CONST_ID:  ${instruction_rom[0]}  ($desc)');
+				var surround = const is String ? '"' : '';
+				var desc:String = '${@:str surround}$const${@:str surround}';
+				Sys.print('CONST_ID:  ${instruction_rom[0]}  (${@:str desc})');
 			case JUMP | JUMP_COND | JUMP_N_COND:
 				Sys.print('IP: ${instruction_rom[0]}, RP: ${instruction_rom[1]}');
 			case FIELD_GET | FIELD_SET: Sys.print('NAME:  ${instruction_rom[0]}');
@@ -400,7 +401,7 @@ class HVM {
 			case ARRAY_STACK: Sys.print('SIZE:      ${instruction_rom[0]}');
 			case STK_OFF: Sys.print('OFFSET:  ${instruction_rom[0]}');
 			case LOCAL_CALL:
-				Sys.print('FUNCTION:  ${instruction_rom[0]}  (${program.func_names[instruction_rom[0]]})');
+				Sys.print('FUNCTION:  ${instruction_rom[0]}  (${@:str program.func_names[instruction_rom[0]]})');
 			default:
 		}
 		Sys.print("\n");

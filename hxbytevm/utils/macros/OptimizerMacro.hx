@@ -90,6 +90,7 @@ class OptimizerMacro {
 									case EConst(CString(_, _)): e;
 									case ETernary(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
 									case EIf(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
+									case EMeta({name: ":str"}, ie): ie;
 									default: macro @:pos(e.pos) Std.string($e);
 								}
 							//}

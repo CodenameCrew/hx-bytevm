@@ -46,10 +46,10 @@ class Program {
 		];
 
 		var result:String = print_bytecode(instructions, read_only_stack, "", 8);
-		result += '\n${StringUtils.getTitle('FUNCTIONS (${function_prints.length}):', headerLength+8)}\n';
+		result += '\n${@:str StringUtils.getTitle('FUNCTIONS (${function_prints.length}):', headerLength+8)}\n';
 		for (i => func_name in func_names) {
-			result += '-   FUNCTION: $func_name ($i, D: ${program_funcs[i].depth}) BYTE CODE:';
-			result += '\n${function_prints[i]}\n';
+			result += '-   FUNCTION: ${@:str func_name} ($i, D: ${program_funcs[i].depth}) BYTE CODE:';
+			result += '\n${@:str function_prints[i]}\n';
 		}
 
 		return result;
@@ -83,12 +83,13 @@ class Program {
 				case PUSH: prints[4].push('VAR:       ${get_rom()}');
 				case PUSHV | SAVE:
 					var v_id = get_rom();
-					prints[4].push('VAR_ID:    $v_id  ("${varnames_stack[v_id]}")');
+					prints[4].push('VAR_ID:    $v_id  ("${@:str varnames_stack[v_id]}")');
 				case PUSHC:
 					var c_id = get_rom();
 					var const = constant_stack[c_id];
-					var desc:String = '${const is String ? '"' : ''}$const${const is String ? '"' : ''}';
-					prints[4].push('CONST_ID:  $c_id  ($desc)');
+					var surround = const is String ? '"' : '';
+					var desc:String = '${@:str surround}$const${@:str surround}';
+					prints[4].push('CONST_ID:  $c_id  (${@:str desc})');
 				case JUMP | JUMP_COND | JUMP_N_COND:
 					var _ip = get_rom();
 					var _rp = get_rom();
@@ -102,7 +103,7 @@ class Program {
 				case STK_OFF: prints[4].push('OFFSET:  ${get_rom()}');
 				case LOCAL_CALL:
 					var func_id = get_rom();
-					prints[4].push('FUNCTION:  ${func_id}  (${func_names[func_id]})');
+					prints[4].push('FUNCTION:  ${func_id}  (${@:str func_names[func_id]})');
 				default: prints[4].push("-");
 			}
 		}
@@ -120,13 +121,13 @@ class Program {
 			}
 		}
 
-		var header:String = '$lineprefix ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].length > 0 ? prints[4].shift() : ""}';
+		var header:String = '${@:str lineprefix} ${@:str prints[0].shift()}  |  ${@:str prints[1].shift()}  |  ${@:str prints[2].shift()}  |  ${@:str prints[3].shift()}  |  ${@:str (prints[4].length > 0 ? prints[4].shift() : "")}';
 		if (header.length > headerLength)
 			headerLength = header.length;
 		var buf = new FastStringBuf();
-		buf.addStr('$lineprefix${StringUtils.getTitle("BYTE CODE:", headerLength+extraHeading)}\n$lineprefix$header\n$lineprefix${FastUtils.repeatString("-", headerLength+extraHeading)}\n');
+		buf.addStr('${@:str lineprefix}${@:str StringUtils.getTitle("BYTE CODE:", headerLength+extraHeading)}\n${@:str lineprefix}${@:str header}\n${@:str lineprefix}${@:str FastUtils.repeatString("-", headerLength+extraHeading)}\n');
 		for (i in 0...instructions.length)
-			buf.addStr('$lineprefix ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n');
+			buf.addStr('${@:str lineprefix} ${@:str prints[0][i]}  |  ${@:str prints[1][i]}  |  ${@:str prints[2][i]}  |  ${@:str prints[3][i]}  |  ${@:str (prints[4][i].length > 0 ? prints[4][i] : "")} \n');
 
 		return buf.toString();
 	}
