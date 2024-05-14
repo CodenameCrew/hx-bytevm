@@ -12,22 +12,22 @@ import hxbytevm.utils.macros.Utils.assert;
 
 using hxbytevm.utils.HelperUtils;
 
-enum TypeDeclMode {
-	TCBeforePackage;
-	TCAfterImport;
-	TCAfterType;
+enum abstract TypeDeclMode(Int) {
+	var TCBeforePackage;
+	var TCAfterImport;
+	var TCAfterType;
 }
 
-enum DeclFlag {
-	DPrivate;
-	DExtern;
-	DFinal;
-	DMacro;
-	DDynamic;
-	DInline;
-	DPublic;
-	DStatic;
-	DOverload;
+enum abstract DeclFlag(Int) {
+	var DPrivate;
+	var DExtern;
+	var DFinal;
+	var DMacro;
+	var DDynamic;
+	var DInline;
+	var DPublic;
+	var DStatic;
+	var DOverload;
 }
 
 class Parser {

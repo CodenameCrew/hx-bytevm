@@ -39,7 +39,7 @@ class VersionUtils {
 		return "Invalid version string \"" + s + "\". Should follow SemVer.";
 	}
 
-	public static function tryParseVersion(s:String):Result<Version, Dynamic> {
+	@:pure public static function tryParseVersion(s:String):Result<Version, Dynamic> {
 		try {
 			var parsed = VersionUtils.parse(s);
 			return Ok(parsed);
@@ -48,7 +48,7 @@ class VersionUtils {
 		}
 	}
 
-	private static function parseDotted(s:String):Array<SVType> {
+	@:pure private static function parseDotted(s:String):Array<SVType> {
 		return [for(d in s.split(".")) {
 			var a = Std.parseInt(d);
 			if (a == null) {
@@ -59,7 +59,7 @@ class VersionUtils {
 		}];
 	}
 
-	private static function parseRelease(s:String):Array<SVType> {
+	@:pure private static function parseRelease(s:String):Array<SVType> {
 		var parts = parseDotted(s);
 
 		return switch(parts) {
@@ -70,7 +70,7 @@ class VersionUtils {
 		}
 	}
 
-	public static function parse(s:String):Version {
+	@:pure public static function parse(s:String):Version {
 		var index = s.indexOf("-");
 		if (index == -1) { // 1.2.3
 			return new Version(parseRelease(s), null);
@@ -95,15 +95,15 @@ class VersionUtils {
 		return new Version(release, pre);
 	}
 
-	public static function compareStr(a:String, b:String):Int {
+	@:pure public static function compareStr(a:String, b:String):Int {
 		return (a == b) ? 0 : ((a < b) ? -1 : 1);
 	}
 
-	public static function compareInt(a:Int, b:Int):Int {
+	@:pure public static function compareInt(a:Int, b:Int):Int {
 		return (a == b) ? 0 : ((a < b) ? -1 : 1);
 	}
 
-	public static function compare(a:Version, b:Version):Int {
+	@:pure public static function compare(a:Version, b:Version):Int {
 		function compareV(v1:SVType, v2:SVType):Int {
 			return switch([v1, v2]) {
 				case [SVNum(n1), SVNum(n2)]: compareInt(n1, n2);

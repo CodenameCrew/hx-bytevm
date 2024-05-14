@@ -696,15 +696,17 @@ class Compiler {
 		this.ip = ip; this.rp = rp;
 	}
 
-	public function get_compile_pointer():Pointer {
+	@:pure public inline function get_compile_pointer():Pointer {
 		return new Pointer(ip, rp);
 	}
 
-	public function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
+	@:pure public inline function mk( e : ExprDef, ?pos : Pos = null ) : Expr {
+		if(pos == null)
+			pos = AstUtils.nullPos;
 		return { expr : e, pos : pos };
 	}
 
-	public function contains_ret(instructions:Array<OpCode>):Bool {
+	@:pure public function contains_ret(instructions:Array<OpCode>):Bool {
 		for (instruction in instructions)
 			if (instruction == RET) return true;
 		return false;

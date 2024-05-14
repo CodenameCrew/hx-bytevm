@@ -76,8 +76,7 @@ String _combineString(const std::vector<String>& inArray) {
 		}
 		buf[len] = '\0';
 
-		String result(buf,len);
-		return result;
+		return String(buf,len);
 	}
 	#endif
 	{

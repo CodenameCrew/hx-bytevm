@@ -143,7 +143,7 @@ class StringUtils {
 		return buf.toString();
 	}
 
-	public static function getLine(s:String, pos:Int) {
+	@:pure public static function getLine(s:String, pos:Int) {
 		var prevNewline = s.lastIndexOf("\n", pos);
 		var nextNewline = s.indexOf("\n", pos);
 		if (prevNewline == -1)

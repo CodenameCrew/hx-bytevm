@@ -13,11 +13,11 @@ class Cache<T> {
 		arr.push(tk);
 	}
 
-	public inline function get(idx:Int):T {
+	@:pure public inline function get(idx:Int):T {
 		return arr[idx];
 	}
 
-	private inline function get_length():Int {
+	@:pure private inline function get_length():Int {
 		return arr.length;
 	}
 

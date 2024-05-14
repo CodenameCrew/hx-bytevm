@@ -57,14 +57,14 @@ class HelperUtils {
 		}
 	}
 
-	public inline static function last<T>(arr:Array<T>):T {
+	@:pure public inline static function last<T>(arr:Array<T>):T {
 		return arr[arr.length - 1];
 	}
-	public inline static function first<T>(arr:Array<T>):T {
+	@:pure public inline static function first<T>(arr:Array<T>):T {
 		return arr[0];
 	}
 
-	public inline static function get<T>(s:Option<T>, ?defaultValue:T):T {
+	@:pure public inline static function get<T>(s:Option<T>, ?defaultValue:T):T {
 		return switch s {
 			case Some(v): v;
 			case None: defaultValue;
@@ -78,7 +78,7 @@ class HelperUtils {
 		}
 	}
 
-	public inline static function toOption<T>(v:T):Option<T> {
+	@:pure public inline static function toOption<T>(v:T):Option<T> {
 		return if(v == null) None else Some(v);
 	}
 }

@@ -133,23 +133,23 @@ typedef TypePath = {
 class AstUtils {
 	public static final nullPos:Pos = { min: -1, max: -1, file: "?" };
 
-	public static inline function punion(p1:Pos, p2:Pos):Pos {
-		return {
+	@:pure public static inline function punion(p1:Pos, p2:Pos):Pos {
+		return @:fixed {
 			min: p1.min < p2.min ? p1.min : p2.min,
 			max: p1.max > p2.max ? p1.max : p2.max,
 			file: p1.file
 		}
 	}
 
-	public static inline function parseInt(s:String):Int {
+	@:pure public static inline function parseInt(s:String):Int {
 		return Std.parseInt(s);
 	}
 
-	public static inline function parseFloat(s:String):Float {
+	@:pure public static inline function parseFloat(s:String):Float {
 		return Std.parseFloat(s);
 	}
 
-	public static function isLowerIdent(s:String):Bool {
+	@:pure public static function isLowerIdent(s:String):Bool {
 		if(s.length == 0)
 			throw hxbytevm.utils.Errors.InvalidArgument("Identifier name must not be empty");
 

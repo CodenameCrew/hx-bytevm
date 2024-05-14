@@ -8,7 +8,7 @@ class CompareUtils {
 		return Type.enumEq(Type.typeof(a), TNull);
 	}
 
-	static inline function isFunction(a:Dynamic):Bool {
+	@:pure static inline function isFunction(a:Dynamic):Bool {
 		return Type.enumEq(Type.typeof(a), TFunction);
 	}
 

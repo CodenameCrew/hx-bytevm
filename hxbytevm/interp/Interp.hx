@@ -96,7 +96,7 @@ class Interp {
 		getDeclLevel(depth).push(decl);
 	}
 
-	public function getTopLevelVar(name: String): Option<DeclaredVar> {
+	@:pure public function getTopLevelVar(name: String): Option<DeclaredVar> {
 		var len = decls.length;
 		if(len == 0) return None;
 		for (decl in decls[0]) {
@@ -108,7 +108,7 @@ class Interp {
 		return None;
 	}
 
-	public function getLocal(name: String): Option<DeclaredVar> {
+	@:pure public function getLocal(name: String): Option<DeclaredVar> {
 		var len = decls.length;
 		for (i in 0...len) {
 			var idx = len - i - 1; // make it go from the end to the beginning
@@ -125,21 +125,16 @@ class Interp {
 		return None;
 	}
 
-	public function getVar(name: String): Option<DeclaredVar> {
+	@:pure public function getVar(name: String): Option<DeclaredVar> {
 		var val = getLocal(name);
 		return val;
 	}
 
-	public function getVarFromExpr(e: Expr): Option<DeclaredVar> {
-		switch (e.expr) {
-			case EConst(c):
-				return switch (c) {
-					case CIdent(s): getVar(s);
-					default: None;
-				}
-			default:
+	@:pure public function getVarFromExpr(e: Expr): Option<DeclaredVar> {
+		return switch (e.expr) {
+			case EConst(CIdent(s)): getVar(s);
+			default: None;
 		}
-		return None;
 	}
 
 	public function getGetSetFromExpr(e: Expr): Array<Dynamic> {

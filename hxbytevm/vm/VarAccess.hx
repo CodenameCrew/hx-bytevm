@@ -15,7 +15,7 @@ class VarAccessKeyValueIterator {
 	}
 
 	@:noCompletion public var _current:Int = 0;
-	public inline function hasNext():Bool {
+	@:pure public inline function hasNext():Bool {
 		return _current < names.length;
 	}
 
