@@ -284,6 +284,7 @@ class Compiler {
 					_compile(eelse);
 				}
 				pointer_update(end_p);
+				trace(end_p);
 			case EWhile(econd, e, flag):
 				switch (flag) {
 					case WFNormalWhile:

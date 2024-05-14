@@ -107,8 +107,13 @@ class HVM {
 		}
 	}
 
+	var totalInstructionsRun:Int = 0;
+
 	var ret:Dynamic = null;
 	public function instruction(instruction:OpCode) {
+		if(totalInstructionsRun > 1000) throw "Too many instructions run";
+		totalInstructionsRun++;
+
 		#if HXBYTEVM_DEBUG __romDiff = 0; #end
 		switch (instruction) {
 			case PUSH: stack.push(get_rom());
@@ -287,6 +292,8 @@ class HVM {
 			var pointer = func_pointers.pop();
 			var old_func = func_ids.pop();
 
+			trace("END");
+
 			if (func_pointers.length <= 0)
 				// return to regular run() function
 				func_id = -1;
@@ -312,12 +319,17 @@ class HVM {
 
 		// do instructions
 		__updateFuncStacks();
-		#if HXBYTEVM_DEBUG if (debug) Sys.println('>----------------- FUNCTION ENTERED $func -----------------<'); #end
+		#if HXBYTEVM_DEBUG if (debug) Sys.println('>----------------- FUNCTION ENTERED $func D: $depth -----------------<'); #end
 		#if HXBYTEVM_DEBUG if (debug) Sys.println(' >>>>>>> $func_rom'); #end
 		while (fip <= func_instructions.length-1) {
-			switch (func_instructions[fip]) {
-				case RET: fip++; end_call(); return;
-				default: instruction(func_instructions[fip]); fip++;
+			if (
+				func_instructions[
+					fip+(func_instructions[fip] == JUMP ||
+						func_instructions[fip] == JUMP_COND ||
+						func_instructions[fip] == JUMP_N_COND
+					? 1 : 0)] == RET) break;
+			else {
+				instruction(func_instructions[fip]); fip++;
 			}
 		}
 
