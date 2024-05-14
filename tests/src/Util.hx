@@ -1,5 +1,6 @@
 package;
 
+import hxbytevm.utils.StringUtils;
 import hxbytevm.utils.FastUtils;
 using StringTools;
 
@@ -51,8 +52,7 @@ class Util {
 		return Math.fround(Value * Mult) / Mult;
 	}
 
-	public static function getTitle(title:String, ?dashsLen:Int = 70) {
-		var l = FastUtils.repeatString("-", Std.int((dashsLen - title.length - 2)/2));
-		return l + ' $title ' + l;
+	public inline static function getTitle(title:String, ?dashsLen:Int = 70) {
+		return StringUtils.getTitle(title, dashsLen);
 	}
 }
