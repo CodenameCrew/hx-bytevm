@@ -330,7 +330,7 @@ class LexerImpl {
 					var ch = peekChar();
 					switch (ch) {
 						case "$".code: str.addChar(ch); pos++; continue; // escaped $
-						case "{".code: pos++; str.flush(); str.add("UNSUPPORTED CODESTRING"); continue;//throw "Code String not supported";
+						case "{".code: pos++; str.flush(); str.addStr("UNSUPPORTED CODESTRING"); continue;//throw "Code String not supported";
 					}
 				case "'".code:
 					pos--;

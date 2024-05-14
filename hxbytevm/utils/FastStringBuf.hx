@@ -70,6 +70,11 @@ class FastStringBuf {
 		return len;
 	}
 
+	// todo: make it automatically use this using a macro
+	public inline function addStr(x:String):Void {
+		b.push(x);
+	}
+
 	public inline function add<T>(x:T):Void {
 		b.push(Std.string(x));
 	}

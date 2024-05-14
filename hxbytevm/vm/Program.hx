@@ -1,5 +1,6 @@
 package hxbytevm.vm;
 
+import hxbytevm.utils.FastStringBuf;
 import hxbytevm.utils.FastUtils;
 import hxbytevm.utils.StringUtils;
 
@@ -113,19 +114,21 @@ class Program {
 			printsSizes[i] = temparray[0].length;
 		}
 
-		for (i in 0...prints.length)
+		for (i in 0...prints.length) {
 			for (p in 0...prints[i].length) {
 				prints[i][p] += FastUtils.repeatString(" ", (printsSizes[i] - prints[i][p].length));
 			}
+		}
 
-		var header:String = '$lineprefix ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].shift() : ""}';
+		var header:String = '$lineprefix ${prints[0].shift()}  |  ${prints[1].shift()}  |  ${prints[2].shift()}  |  ${prints[3].shift()}  |  ${prints[4].length > 0 ? prints[4].shift() : ""}';
 		if (header.length > headerLength)
 			headerLength = header.length;
-		var result:String = '$lineprefix${StringUtils.getTitle("BYTE CODE:", headerLength+extraHeading)}\n$lineprefix$header\n$lineprefix${FastUtils.repeatString("-", headerLength+extraHeading)}\n';
+		var buf = new FastStringBuf();
+		buf.addStr('$lineprefix${StringUtils.getTitle("BYTE CODE:", headerLength+extraHeading)}\n$lineprefix$header\n$lineprefix${FastUtils.repeatString("-", headerLength+extraHeading)}\n');
 		for (i in 0...instructions.length)
-			result += '$lineprefix ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n';
+			buf.addStr('$lineprefix ${prints[0][i]}  |  ${prints[1][i]}  |  ${prints[2][i]}  |  ${prints[3][i]}  |  ${prints[4][i].length > 0 ? prints[4][i] : ""} \n');
 
-		return result;
+		return buf.toString();
 	}
 
 	public function print_opcode(o:OpCode):String {

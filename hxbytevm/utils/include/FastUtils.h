@@ -31,6 +31,7 @@ String combineString(String a, String b);
 String combineString(String a, String b, String c);
 String combineString(String a, String b, String c, String d);
 String combineString(String a, String b, String c, String d, String e);
+String combineString(String a, String b, String c, String d, String e, String f);
 String combineString(String a, String b, String c, String d, String e, String f, String g);
 String combineString(String a, String b, String c, String d, String e, String f, String g, String h);
 String combineString(String a, String b, String c, String d, String e, String f, String g, String h, String i);

@@ -22,8 +22,7 @@
 --define mac
 
 --macro keep('IntIterator')
-# --macro hscript.macros.UsingHandler.init()
-# --macro hscript.macros.ClassExtendMacro.init()
+--macro hxbytevm.utils.macros.OptimizerMacro.init()
 
 
 # Copying the assets from source code to bin folder
