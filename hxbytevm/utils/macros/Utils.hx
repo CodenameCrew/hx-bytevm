@@ -1,11 +1,13 @@
 package hxbytevm.utils.macros;
 
+#if macro
 import haxe.macro.Printer;
 import haxe.io.Path;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 
 using haxe.macro.PositionTools;
+#end
 
 class Utils {
 	#if macro

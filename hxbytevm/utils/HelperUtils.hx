@@ -31,7 +31,7 @@ abstract Tuple<T1, T2>(TupleImpl<T1, T2>) from TupleImpl<T1, T2> to TupleImpl<T1
 		}
 	}
 
-	public static function make<T1, T2>(t1:T1, t2:T2):Tuple<T1, T2> {
+	@:pure public static function make<T1, T2>(t1:T1, t2:T2):Tuple<T1, T2> {
 		return new TupleImpl(t1, t2);
 	}
 }

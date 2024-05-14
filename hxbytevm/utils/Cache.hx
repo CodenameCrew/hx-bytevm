@@ -1,8 +1,5 @@
 package hxbytevm.utils;
 
-import hxbytevm.core.Ast;
-import hxbytevm.core.Token;
-
 class Cache<T> {
 	public var arr:Array<T> = []; // TODO: use a linked list
 	public var length(get, never):Int;

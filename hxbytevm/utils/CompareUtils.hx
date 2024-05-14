@@ -4,7 +4,7 @@ import haxe.Constraints.IMap;
 import haxe.EnumTools.EnumValueTools;
 
 class CompareUtils {
-	static inline function isNull(a:Dynamic):Bool {
+	@:pure static inline function isNull(a:Dynamic):Bool {
 		return Type.enumEq(Type.typeof(a), TNull);
 	}
 
