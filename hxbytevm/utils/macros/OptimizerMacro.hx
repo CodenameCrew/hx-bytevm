@@ -10,6 +10,7 @@ import haxe.macro.Compiler;
 import haxe.macro.Printer;
 
 using haxe.macro.ExprTools;
+using haxe.macro.TypeTools;
 #end
 
 class OptimizerMacro {
@@ -25,11 +26,9 @@ class OptimizerMacro {
 	macro public static function build(): Array<Field> {
 		var fields = Context.getBuildFields();
 		if(fields == null) return fields;
-		//trace(fields);
 		for (field in fields) {
 			switch(field.kind) {
 				case FFun(fun) if (fun.expr != null):
-					//trace(Context.typeExpr(fun.expr));
 					fun.expr = map(fun.expr);
 				case _:
 			}
@@ -39,16 +38,17 @@ class OptimizerMacro {
 
 	static function map(e:Expr) {
 		// TODO: support EBinOp(OpAdd, e1, e2)
-		switch(e.expr) {
+		var ret = switch(e.expr) {
 			case EConst(CString(s, SingleQuotes)) if(StringTools.contains(s, "$")):
-				var e = optimizeStringInterpolation(MacroStringTools.formatString(s, e.pos));
-				return e.map(map);
+				optimizeStringInterpolation(MacroStringTools.formatString(s, e.pos)).map(map);
 			default:
+				e.map(map);
 		}
-		return e.map(map);
+		return ret;
 	}
 	static function optimizeStringInterpolation(str: Expr): Expr {
 		var printer = new Printer();
+
 		var strElements:Array<Expr> = [];
 
 		function iter(e:Expr) {
@@ -73,21 +73,26 @@ class OptimizerMacro {
 				var args = arr.splice(0, 16);
 				for(i in 0...args.length) {
 					var e = args[i];
-					try {
-						args[i] = switch(Context.typeof(e)) {
-							case TInst(_.get() => {name: "String"}, _): e;
-							default: macro @:pos(e.pos) Std.string($e);
-						}
-					} catch (err:Dynamic) {
-						//trace(err);
-						//trace(e.pos);
-						//trace(CallStack.toString(CallStack.exceptionStack()));
-						args[i] = switch(e.expr) {
-							case EConst(CString(_, _)): e;
-							case ETernary(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
-							case EIf(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
-							default: macro @:pos(e.pos) Std.string($e);
-						}
+					switch(e.expr) {
+						case EConst(CString(_, _)):
+						default:
+							//try {
+							//	args[i] = switch(Context.typeof(e)) {
+							//		case TInst(_.get() => {name: "String"}, _): e;
+							//		default: macro @:pos(e.pos) Std.string($e);
+							//	}
+							//} catch (err:Dynamic) {
+								//trace(err);
+								//trace(e.toString());
+								//trace(e.pos);
+								//trace(CallStack.toString(CallStack.exceptionStack()));
+								args[i] = switch(e.expr) {
+									case EConst(CString(_, _)): e;
+									case ETernary(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
+									case EIf(_, _.expr => EConst(CString(_, _)), _.expr => EConst(CString(_, _))): e;
+									default: macro @:pos(e.pos) Std.string($e);
+								}
+							//}
 					}
 				}
 				var ta = args.length;
