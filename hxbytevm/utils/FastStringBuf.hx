@@ -113,6 +113,10 @@ class FastStringBuf {
 	@:pure public inline function flush():Void {
 	}
 
+	public inline function addStr(x:String):Void {
+		b += x;
+	}
+
 	public inline function add<T>(x:T):Void {
 		b += x;
 	}
