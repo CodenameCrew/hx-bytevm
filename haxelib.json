@@ -2,8 +2,8 @@
   "name": "hx-bytevm",
   "url": "https://github.com/FNF-CNE-Devs/hx-bytevm",
   "license": "MIT",
-  "description": "hx-bytevm is a bytecode virtual machine for Haxe, for running code at runtime.",
+  "description": "hx-bytevm is a bytecode virtual machine and compilier for Haxe, for running code at runtime.",
   "version": "0.0.1",
   "releasenote": "",
-  "contributors": ["Ne_Eo", "Lunarcleint"],
+  "contributors": ["Ne_Eo", "lunarcleint"],
 }

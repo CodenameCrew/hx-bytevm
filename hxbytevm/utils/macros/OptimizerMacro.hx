@@ -116,8 +116,8 @@ class OptimizerMacro {
 			e = convertToCombineString(arr);
 		}
 
-		trace(str.toString());
-		trace(e.toString());
+		// trace(str.toString());
+		// trace(e.toString());
 
 		return e;
 	}
