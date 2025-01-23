@@ -36,6 +36,49 @@ class Stack {
 		return ret;
 	}
 
+	public var length(get, never):Int;
+	public inline function get_length():Int
+		return stackTop;
+
+	public inline function isEmpty():Bool
+		return stackTop == 0;
+
+	public inline function clear() {
+		stackTop = 0;
+	}
+
+	public inline function get(index:Int):Dynamic
+		#if cpp
+		return untyped stack.__unsafe_get(index);
+		#else
+		return stack[index];
+		#end
+
+	public inline function set(index:Int, value:Dynamic):Dynamic
+		#if cpp
+		return untyped stack.__unsafe_set(index, value);
+		#else
+		return stack[index] = value;
+		#end
+
+	public inline function getTop():Dynamic {
+		if (stackTop <= 0) return null;
+		#if cpp
+		return untyped stack.__unsafe_get(stackTop - 1);
+		#else
+		return stack[stackTop - 1];
+		#end
+	}
+
+	public inline function setTop(value:Dynamic):Dynamic {
+		if (stackTop <= 0) return null;
+		#if cpp
+		return untyped stack.__unsafe_set(stackTop - 1, value);
+		#else
+		return stack[stackTop - 1] = value;
+		#end
+	}
+
 	public inline function grow()
 		#if cpp untyped stack.__SetSizeExact #else stack.resize #end (stack.length + (stack.length > MAX_STACK_GROW ? MAX_STACK_GROW : stack.length));
 
