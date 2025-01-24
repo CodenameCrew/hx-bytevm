@@ -1,5 +1,6 @@
 package hxbytevm.vm;
 
+import hxbytevm.utils.UnsafeReflect;
 import hxbytevm.vm.ByteCode;
 import haxe.io.Bytes;
 import haxe.io.BytesInput;
@@ -45,7 +46,7 @@ class HVM {
 		this.reader = null;
 		this.memory = null;
 		this.state = null;
-		this.stack = null
+		this.stack = null;
 	}
 
 	public function load(bytes:Bytes) {
@@ -57,8 +58,10 @@ class HVM {
 
 	public function execute() {
 		// TODO: STORE STATE OF THREAD
-		while (reader.position >= bytes.length)
+		while (reader.position < bytes.length) {
 			execute_instruction();
+			// trace(sys.thread.Thread.current());
+		};
 	}
 
 	public function execute_instruction():Void {
@@ -101,6 +104,7 @@ class HVM {
 			case ByteCode.PUSH_PI:
 				stack.push(Math.PI);
 
+				/*
 			case ByteCode.PUSH_FUNCTION:
 				var index = reader.readInt32();
 				var func = function(args:Array<Dynamic>) {
@@ -113,7 +117,7 @@ class HVM {
 					return return_value;
 				}
 				stack.push(Reflect.makeVarArgs(func));
-
+				*/
 			case ByteCode.BINOP_ADD:
 				var b = stack.pop();
 				var a = stack.pop();
@@ -240,7 +244,7 @@ class HVM {
 				var args = stack.pop();
 				var func = stack.pop();
 				if(!Reflect.isFunction(func))
-					throw "Can't call " + func + " because it's not a function";
+					throw "Cannot call non function";
 
 				var ret = UnsafeReflect.callMethod(null, func, args);
 				stack.push(ret);
@@ -248,7 +252,7 @@ class HVM {
 			case ByteCode.CALL_NOARG:
 				var func = stack.pop();
 				if(!Reflect.isFunction(func))
-					throw "Can't call " + func + " because it's not a function";
+					throw "Cannot call non function";
 
 				var ret = UnsafeReflect.callMethod(null, func, []);
 				stack.push(ret);
@@ -279,10 +283,10 @@ class HVM {
 				var value = stack.pop();
 				array[index] = value;
 
-			case ByteCode.RETURN:
+			// case ByteCode.RETURN:
 				// TODO: check how lua does this
-				return_value = stack.pop();
-				reader.position = callStack.pop();
+				// return_value = stack.pop();
+				// reader.position = callStack.pop();
 
 			default:
 				throw "Unknown opcode: " + opcode;

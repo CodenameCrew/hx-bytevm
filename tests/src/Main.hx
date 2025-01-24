@@ -1,6 +1,6 @@
 package;
 
-import hxbytevm.utils.macros.DefinesMacro;
+import vm.VMTest;
 
 class Main {
 	public static function main() {
