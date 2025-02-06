@@ -35,7 +35,8 @@ class ByteCodePrinter {
 			case ByteCode.PUSH_STRING32: reader.readString(reader.readInt32());
 			case ByteCode.PUSH_MEMORY8: reader.readInt8();
 			case ByteCode.PUSH_MEMORY16: reader.readInt16();
-			case ByteCode.PUSH_MEMORY24: reader.readInt24();
+			// ?
+			case ByteCode.PUSH_MEMORY24: reader.readInt24(); // IO DID IT
 			case ByteCode.SAVE_MEMORY8: reader.readInt8();
 			case ByteCode.SAVE_MEMORY16: reader.readInt16();
 			case ByteCode.SAVE_MEMORY24: reader.readInt24();
