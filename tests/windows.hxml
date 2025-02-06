@@ -1,8 +1,10 @@
 build-generic.hxml
 --define windows
 
+--debug
+
 # Copying the assets from source code to bin folder
 # --cmd Xcopy assets\ bin\cpp\assets\ /E /H /C /I /Y
 --cpp bin/cpp
 --cmd cd bin/cpp
---cmd Main.exe
+--cmd Main-debug.exe

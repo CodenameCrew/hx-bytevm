@@ -17,9 +17,7 @@ class HVMState {
 		stack = new Stack();
 	}
 
-	public function clone(state:HVMState) {
-
-	}
+	public function clone(state:HVMState) {}
 }
 
 /**

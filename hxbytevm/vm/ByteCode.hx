@@ -2,6 +2,7 @@ package hxbytevm.vm;
 
 typedef ByteInt = #if cpp cpp.Int8 #else Int #end;
 
+@:build(hxbytevm.utils.macros.DebugAbstractMacro.build())
 enum abstract ByteCode(ByteInt) from ByteInt from Int to ByteInt to Int {
 	/**
 	 * FOLLOWED BY 1 BYTE -

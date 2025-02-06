@@ -6,6 +6,7 @@ import hxbytevm.utils.StringUtils;
 import hxbytevm.utils.FastUtils;
 
 using StringTools;
+using stepper.A;
 
 class Util {
 	public static inline function getTime():Float {
@@ -148,5 +149,10 @@ class Util {
 		}
 
 		return true;
+	}
+
+	public static inline function addZeros(str:String, num:Int) {
+		while(str.length < num) str = '0${str}';
+		return str;
 	}
 }
