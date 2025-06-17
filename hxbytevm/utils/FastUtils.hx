@@ -14,46 +14,17 @@ package hxbytevm.utils;
 	@:native('repeatString') public static function repeatString(str:String, times:Int):String;
 	@:native('parse_int_throw') public static function parseIntLimit(str:String):Int;
 	#else
-	@:pure public static overload extern inline function combineStringFast(a:String):String return _combineString(a);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String):String return _combineString(a,b);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String):String return _combineString(a,b,c);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String):String return _combineString(a,b,c,d,e,f,g);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String):String return _combineString(a,b,c,d,e,f,g,h);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String):String return _combineString(a,b,c,d,e,f,g,h,i);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String):String return _combineString(a,b,c,d,e,f,g,h,i,j);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String, o:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-	@:pure public static overload extern inline function combineStringFast(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String, o:String, p:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p);
+	@:pure public static inline function combineStringFast(inArray:Array<String>){
+		combineString(inArray);
+	}
 
-	@:pure public static overload extern inline function combineString(a:String):String return _combineString(a);
-	@:pure public static overload extern inline function combineString(a:String, b:String):String return _combineString(a,b);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String):String return _combineString(a,b,c);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String):String return _combineString(a,b,c,d);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String):String return _combineString(a,b,c,d,e);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String):String return _combineString(a,b,c,d,e,f);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String):String return _combineString(a,b,c,d,e,f,g);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String):String return _combineString(a,b,c,d,e,f,g,h);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String):String return _combineString(a,b,c,d,e,f,g,h,i);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String):String return _combineString(a,b,c,d,e,f,g,h,i,j);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String, o:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o);
-	@:pure public static overload extern inline function combineString(a:String, b:String, c:String, d:String, e:String, f:String, g:String, h:String, i:String, j:String, k:String, l:String, m:String, n:String, o:String, p:String):String return _combineString(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p);
-
-	@:pure private static function _combineString(...a:String):String {
+	@:pure public static function combineString(inArray:Array<String>){
 		var buf = new StringBuf();
-		for(s in a)
+		for(s in inArray)
 			buf.add(s);
 		return buf.toString();
 	}
+
 
 	@:pure public static function repeatString(str:String, times:Int):String {
 		var buf = new StringBuf();
