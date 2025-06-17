@@ -65,7 +65,7 @@ class StringUtils {
 		}
 		return FastUtils.combineString(vec);
 		#else
-		return FastUtils.combineString(l, " ", title, " ", l);
+		return FastUtils.combineString([l, " ", title, " ", l]);
 		#end
 		//l + ' $title ' + l;
 	}
