@@ -6,4 +6,7 @@
   "version": "0.0.1",
   "releasenote": "",
   "contributors": ["Ne_Eo", "lunarcleint"],
+  "dependencies": {
+	"cpphelpers": ""
+  }
 }
