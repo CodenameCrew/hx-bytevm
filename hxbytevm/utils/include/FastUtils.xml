@@ -4,8 +4,21 @@
 
 	<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
 
+
+	<files id="__main__">
+		<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
+	</files>
+
 	<files id="haxe">
+		<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
+	</files>
+
+	<files id="bytevm">
 		<compilerflag value="-I${HXBYTEVMUTILS_PATH}" />
 		<file name="${HXBYTEVMUTILS_PATH}FastUtils.cpp" />
 	</files>
+
+	<target id="haxe">
+		<files id="bytevm" />
+	</target>
 </xml>

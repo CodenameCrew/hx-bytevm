@@ -2,11 +2,13 @@
 	"editor.detectIndentation": false,
 	"editor.insertSpaces": false,
 	"files.associations": {
-		"*.hx": "haxe",
 		"*.hscript": "haxe",
+		"*.info": "json",
+		"*.hx": "haxe",
 		"*.hsc": "haxe",
 		"*.hxs": "haxe",
-		"vector": "cpp"
+		"vector": "cpp",
+		"random": "cpp"
 	},
 	"files.eol": "\n",
 	"files.insertFinalNewline": true,

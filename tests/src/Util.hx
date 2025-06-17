@@ -10,7 +10,7 @@ using stepper.A;
 
 class Util {
 	public static inline function getTime():Float {
-		return untyped __global__.__time_stamp();
+		return haxe.Timer.stamp();
 	}
 
 	// expandScientificNotation but its WAY too long to write out

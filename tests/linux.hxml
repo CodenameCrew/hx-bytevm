@@ -1,9 +1,7 @@
 build-generic.hxml
 --define linux
+--define NO_PRECOMPILED_HEADERS
 
-# Copying the assets from source code to bin folder
---cmd rm -rf bin/cpp/assets
---cmd cp -r assets bin/cpp/assets
 --cpp bin/cpp
 --cmd cd bin/cpp
 --cmd ./Main
