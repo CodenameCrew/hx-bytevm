@@ -16,25 +16,29 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-package hxbytevm.syntax;
+package hxbytevm.core.syntax;
 
 // Copyright since a lot of this code is from https://github.com/HaxeFoundation/haxe/blob/development/src/syntax/lexer.ml
 
-import hxbytevm.utils.Stream;
+import hxbytevm.core.Ast;
+import hxbytevm.core.Token;
+
 import hxbytevm.printer.Printer;
-import haxe.ds.Option;
+
+import hxbytevm.utils.macros.DefinesMacro;
 import hxbytevm.utils.Errors;
 import hxbytevm.utils.ExprUtils;
 import hxbytevm.utils.VersionUtils;
 import hxbytevm.utils.FastUtils;
-import hxbytevm.core.Ast;
-import hxbytevm.core.Token;
+
 import hxbytevm.utils.RegexUtils;
 import hxbytevm.utils.StringUtils;
 import hxbytevm.utils.FastStringBuf;
-import hxbytevm.utils.macros.DefinesMacro;
-using hxbytevm.utils.HelperUtils;
+import hxbytevm.utils.Stream;
 
+import haxe.ds.Option;
+
+using hxbytevm.utils.HelperUtils;
 using StringTools;
 
 // TODO: Add string interpolation
@@ -117,7 +121,7 @@ class Lexer extends CacheStream<Token> {
 /**
  * A lexer and preprocessor for the Haxe language.
 **/
-@:allow(hxbytevm.syntax.Lexer)
+@:allow(hxbytevm.core.syntax.Lexer)
 class LexerImpl {
 	public var defines:DefineContext;
 	private var stream:Lexer;

@@ -1,10 +1,10 @@
 package;
 
-import hxbytevm.syntax.Parser;
+import hxbytevm.core.syntax.Parser;
 import haxe.io.Path;
 import sys.FileSystem;
 import sys.io.File;
-import hxbytevm.syntax.Lexer;
+import hxbytevm.core.syntax.Lexer;
 
 using StringTools;
 

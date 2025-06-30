@@ -5,8 +5,8 @@ import hxbytevm.vm.ByteCode;
 import haxe.io.Bytes;
 import haxe.io.BytesInput;
 
-typedef MemoryValue = Dynamic;
-typedef Memory = Array<MemoryValue>;
+typedef Data = Dynamic;
+typedef Memory = Array<Data>;
 
 class HVMState {
 	public var stack:Stack;
@@ -28,12 +28,11 @@ class HVM {
 	 * The program to execute.
 	 */
 	public var bytes:Bytes;
-	private var reader:BytesInput;
-
-	private var memory:Memory;
 	public var state:HVMState;
-
 	public var stack:Stack;
+
+	private var reader:BytesInput;
+	private var memory:Memory;
 
 	public function new(?bytes:Bytes = null) {
 		if (bytes != null) load(bytes);

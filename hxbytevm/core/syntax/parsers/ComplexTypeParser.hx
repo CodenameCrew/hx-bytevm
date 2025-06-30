@@ -1,4 +1,4 @@
-package hxbytevm.syntax.parsers;
+package hxbytevm.core.syntax.parsers;
 
 import hxbytevm.utils.CompareUtils;
 import haxe.ds.Option;

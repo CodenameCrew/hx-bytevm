@@ -1,14 +1,15 @@
-package hxbytevm.syntax;
+package hxbytevm.core.syntax;
 
-import hxbytevm.syntax.parsers.ComplexTypeParser;
-import hxbytevm.utils.Errors;
-import haxe.ds.Option;
-import hxbytevm.utils.enums.Result;
+import hxbytevm.core.syntax.parsers.ComplexTypeParser;
 import hxbytevm.core.Token;
-import hxbytevm.utils.Stream;
 import hxbytevm.core.Ast;
 
 import hxbytevm.utils.macros.Utils.assert;
+import hxbytevm.utils.Errors;
+import hxbytevm.utils.enums.Result;
+import hxbytevm.utils.Stream;
+
+import haxe.ds.Option;
 
 using hxbytevm.utils.HelperUtils;
 

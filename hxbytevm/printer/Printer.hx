@@ -26,11 +26,12 @@ package hxbytevm.printer;
 
 import hxbytevm.utils.FastUtils;
 import hxbytevm.utils.StringUtils;
-import hxbytevm.vm.Program;
+//import hxbytevm.vm.Program;
 import hxbytevm.core.Ast;
 
 using StringTools;
 
+// TODO: move this "utils" package
 class Printer {
 	var indentation : Int;
 
@@ -85,11 +86,11 @@ class Printer {
 	public function printArray<T>(el:Array<T>, map:T->String, sep:String) {
 		return el.map(map).join(sep);
 	}
-
+	/*
 	public static function printCompiledProgram(program:Program):String {
 		return program.print();
 	}
-
+	*/
 	@:pure public static function printExpr(e:Expr):String {
 		return new Printer().expr(e);
 	}
