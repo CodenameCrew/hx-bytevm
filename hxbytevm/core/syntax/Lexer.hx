@@ -23,7 +23,7 @@ package hxbytevm.core.syntax;
 import hxbytevm.core.Ast;
 import hxbytevm.core.Token;
 
-import hxbytevm.printer.Printer;
+import hxbytevm.utils.printer.Printer;
 
 import hxbytevm.utils.macros.DefinesMacro;
 import hxbytevm.utils.Errors;

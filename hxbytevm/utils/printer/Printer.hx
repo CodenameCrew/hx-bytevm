@@ -20,7 +20,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-package hxbytevm.printer;
+package hxbytevm.utils.printer;
 
 // Copyright included since a lot of it is from the haxe.macro.Printer class
 
@@ -31,7 +31,6 @@ import hxbytevm.core.Ast;
 
 using StringTools;
 
-// TODO: move this "utils" package
 class Printer {
 	var indentation : Int;
 
