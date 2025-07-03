@@ -5,5 +5,5 @@
   "description": "hx-bytevm is a bytecode virtual machine and compilier for Haxe, for running code at runtime.",
   "version": "0.0.1",
   "releasenote": "",
-  "contributors": ["Ne_Eo", "lunarcleint"],
+  "contributors": ["Anonymous", "lunarcleint"]
 }
