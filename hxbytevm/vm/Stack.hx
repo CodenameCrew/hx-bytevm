@@ -10,6 +10,7 @@ class Stack {
 	public static final DEFAULT_STACK_SIZE:Int = 8;
 	public static final MAX_STACK_GROW:Int = 32;
 
+	// TODO: use haxe.ds.Vector
 	#if cpp
 	public var stack = NativeArray.create(DEFAULT_STACK_SIZE);
 	#else
@@ -19,8 +20,13 @@ class Stack {
 
 	public inline function push(v:Dynamic) {
 		if (stackTop >= (stack.length)) grow();
+		#if cpp
 		untyped stack.__unsafe_set(stackTop, v);
 		return untyped stack.__unsafe_get((stackTop++) - 1);
+		#else
+		stack[stackTop] = v;
+		return stack[(stackTop++) - 1];
+		#end
 	}
 
 	public inline function pop():Dynamic {
